@@ -124,7 +124,7 @@ consistent everywhere. Names may be at most 32 characters.
                             │     │IN_OUT                     │PL_VBank  │──► SMC SI unit (EIP or Modbus TCP)
                             │   XV_1001_HMI          Healthy ◄┘          │
                             │                                            │
-                            │   PL_Vfd P_2001 ◄─► PL_<Make>_Adp          │◄─► VFD (EIP or Modbus TCP)
+                            │   PL_Vfd P_2001 ◄─► PL_PF525_Adp           │◄─► PowerFlex 525 (EtherNet/IP)
                             │     │IN_OUT                                │
                             │   P_2001_HMI                               │
                             │                                            │
