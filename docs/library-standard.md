@@ -1,4 +1,4 @@
-# Process Device Library – Design Standard (DRAFT v0.2)
+# Process Device Library – Design Standard (DRAFT v0.3)
 
 **Status:** Draft for review. Nothing in this repo has been built yet. This spec defines the shape of every object
 first, so we can agree on it once before writing the DFBs, DDTs, UDTs and faceplates.
@@ -9,7 +9,8 @@ first, so we can agree on it once before writing the DFBs, DDTs, UDTs and facepl
 | PLC languages | DFB bodies in ST; call sites in any language (FBD recommended for readability) |
 | HMI | Ignition **8.1** Perspective, with **8.3** as the target in roughly 6 months |
 | PLC ↔ HMI | OPC UA, symbolic, **one BMENUA0100 per system**. No located `%MW` blocks |
-| Field devices | Valves on **SMC SY3000 manifolds with an Ethernet SI unit**. VFDs on Ethernet. Both use **EtherNet/IP** first and **Modbus TCP** as the fallback |
+| Field devices | Valves on **SMC SY3000 manifolds with an SMC EX260 SI unit**: **EtherNet/IP** first, **Modbus TCP** as the fallback. Limit switches are optional per valve (most valves have none). VFDs are **Allen-Bradley PowerFlex 525** on EtherNet/IP |
+| System size | Small system 1–10 devices, large 5–20 (one M580 + BMENUA0100 per system) |
 | HMI style | **ISA-101 grey scale** |
 
 Open questions are in [§14](#14-open-questions-for-review).
@@ -20,6 +21,7 @@ Open questions are in [§14](#14-open-questions-for-review).
 |---|---|
 | 0.1 | First draft |
 | 0.2 | Prefix `PL_` confirmed. **Status and alarms are now individual BOOLs** (packed words removed). One BMENUA0100 per system. ISA-101 grey scale chosen. Added **valve bank object `PL_VBank`** for SMC SI units (EtherNet/IP or Modbus TCP). Double-solenoid / 3-position valve behaviour added. All Ethernet devices are now handled transport-independently |
+| 0.3 | SMC **EX260** confirmed. **Limit switches are optional** (`Cfg.HasZSO/HasZSC`, default none) and the no-switch behaviour is defined. VFD built around the **PowerFlex 525** (`PL_PF525_Adp`), with its comms constraint noted (no native Modbus TCP). Sizing simplified for 1–20 devices per system. Unanswered questions now have stated defaults |
 
 ---
 
@@ -66,11 +68,11 @@ Open questions are in [§14](#14-open-questions-for-review).
 | Common core | `PL_Core` (internal) | `PL_Base` | `PL_Base` (abstract parent) | Mode, command decode, interlock/permissive, first-out, bypass, reset, sim gating |
 | Analog input | `PL_Ain` | `PL_Ain_HMI` | `PL_Ain` | Scaling, filter, HH/H/L/LL, NAMUR bad-signal, sim |
 | Discrete input | `PL_Din` | `PL_Din_HMI` | `PL_Din` | Debounce, alarm state, sim |
-| Discrete valve | `PL_DVlv` | `PL_DVlv_HMI` | `PL_DVlv` | On/off air-operated valve. SY3000 single solenoid, double solenoid or 3-position. 0/1/2 limit switches |
+| Discrete valve | `PL_DVlv` | `PL_DVlv_HMI` | `PL_DVlv` | On/off air-operated valve. SY3000 single solenoid, double solenoid or 3-position. Limit switches optional: none (default), open only, closed only, or both |
 | **Valve bank** | `PL_VBank` | `PL_VBank_HMI` | `PL_VBank` | SMC SI unit + SY3000 manifold. Coil image packing, comm/air/power health, station map. EtherNet/IP or Modbus TCP |
 | Motor (fixed speed) | `PL_Mtr` | `PL_Mtr_HMI` | `PL_Mtr` | Across-the-line or soft starter. Maintained or 3-wire pulse outputs |
 | VFD motor | `PL_Vfd` | `PL_Vfd_HMI` | `PL_Vfd` | Drive-agnostic speed-controlled motor |
-| Drive adapter | `PL_<Make>_Adp` | – | – | Maps `PL_Vfd` ⇄ a drive family's control/status words. Transport-independent. The first adapter is chosen by your answer to Q8 |
+| PowerFlex 525 adapter | `PL_PF525_Adp` | – | – | Maps `PL_Vfd` ⇄ the PF525 EtherNet/IP I/O (Logic Command/Status, speed ref/feedback, Datalinks). Other drive families can get their own adapter later |
 | Analog valve | `PL_AVlv` | `PL_AVlv_HMI` | `PL_AVlv` | Positioned control valve, 4–20 mA output, optional position feedback |
 | PID loop | `PL_Pid` | `PL_Pid_HMI` | `PL_Pid` | Wraps the Control Expert `PIDFF` block. Adds Man/Auto/Cas, SP limits/ramp, bumpless transfer, alarms |
 | Global | – | `PL_Global` | `PL_Global` | Site sim permit, PLC↔HMI heartbeat |
@@ -157,18 +159,16 @@ consistent everywhere. Names may be at most 32 characters.
   CE 16.2 setting name in Phase 1.)*
 - Use security policy `Basic256Sha256` with Sign & Encrypt. Trust Ignition's client certificate explicitly.
 - In Ignition, create **one OPC UA connection per system**. The UDT parameter `OpcServer` selects it.
-- **Sizing with individual BOOLs:** a typical device has about 35–50 members. To keep the BMENUA0100 subscription
-  load reasonable, Ignition subscribes to each member in one of three tag groups:
+- **Sizing:** systems have 1–20 devices. Even at about 50 members per device, that is ~1,000 monitored items per
+  BMENUA0100, which is well within what an embedded OPC UA server is designed for. *(Phase 1: still confirm against
+  the BMENUA0100 user guide limits.)* No leased-group tricks are needed, so it's kept simple with two tag groups:
 
-| Tag group | Mode | Members | Typical items per device |
-|---|---|---|---|
-| `PL_Alarm` | Direct, 1 s | `Alm.*` (alarms must always be evaluated) | 4–10 |
-| `PL_Fast` | Direct, 500 ms | `Base.Mode`, `Base.State`, `Base.Sts.*` summary, main `Val.*` (PV, speed, position) | 10–18 |
-| `PL_Leased` | Leased: 500 ms while viewed, otherwise 0 | `Cfg.*`, `DevSts.*`, counters, interlock arrays, `CmdRsp` | 0 unless a faceplate is open |
+| Tag group | Mode | Members |
+|---|---|---|
+| `PL_Fast` | Direct, 500 ms | Everything except `Cfg.*` |
+| `PL_Slow` | Direct, 2 s | `Cfg.*` |
 
-  Planning figure: about **25 always-on items per device**. *Phase 1 action:* check the BMENUA0100 user guide's
-  limits for monitored items, subscriptions and sessions against the largest system's device count (Q4). If it's
-  tight, move `Base.Sts.*` to leased (icons only need `Mode` and `State`).
+  A third *leased* group can be added later if a system ever grows well beyond 20 devices.
 
 - Interlock, permissive and bypass status are **BOOL arrays** (`ARRAY[0..15] OF BOOL`). Each array is one OPC UA
   item and one Ignition array tag, and is still readable element by element in an animation table. *(Verify
@@ -324,11 +324,28 @@ The valve covers the SY3000 functions:
   the I/O-fault alarm text says so. If a valve must go to a defined position on comm loss, it must be type 1 or 3.
   This is an engineering choice made in the valve selection (see the note in §6.2.2).
 
-**DFB inputs:** **`ZSO`** BOOL, **`ZSC`** BOOL, `IOFlt` BOOL (normally `NOT VB_xxx.Healthy` OR the limit-switch
-channel fault), `Intlk` WORD(FFFF), `Perm` WORD(FFFF), `IntlkBypMask` WORD(0), `PCmdOpen` BOOL (Auto: TRUE = open,
+#### Limit switches are optional
+
+Most valves have no limit switches, but any valve can get them later with **no code or HMI change**: wire the
+input, set `Cfg.HasZSO` and/or `Cfg.HasZSC`, done. The pins default to FALSE, and the default config is no switches.
+
+| `HasZSO` / `HasZSC` | Position shown | Opening/Closing state | Fail-to-open/close, position-lost, stroke time |
+|---|---|---|---|
+| none / none (default) | **Commanded** position. `DevSts.PosConfirmed = FALSE` | Shown for `Cfg.TravelTime_s` (nominal stroke) after a command, so the icon animates the same way | Not available. These alarms are never raised, and the Maint tab hides stroke data |
+| one switch | Confirmed at the switched end, inferred at the other end after `TravelTime_s` | Ends when the switch makes (or the timer expires at the unswitched end) | Fail-to-reach only for the switched end. Position-lost only for the switched end |
+| both | Confirmed at both ends | Ends when the switch makes | All available. `TravelTmo_s` is the fail timeout |
+
+- An unconfirmed position is drawn the same as a confirmed one, but with a small neutral "≈" marker on the icon and
+  "Open (cmd)" text on the faceplate. That way the operator always knows whether the plant or the PLC is the source.
+- `Alm.IOFlt` still works without switches, because it comes from the bank (comm/air/power).
+- Interlocks that need a *proven* valve position (e.g. "XV-1001 proven closed") should use `XV_1001.IsClosed`
+  **and** `XV_1001_HMI.DevSts.PosConfirmed`. The `IsClosedPrv` output combines both.
+
+**DFB inputs:** `ZSO` BOOL(FALSE), `ZSC` BOOL(FALSE), `IOFlt` BOOL (normally `NOT VB_xxx.Healthy` OR the
+limit-switch channel fault), `Intlk` WORD(FFFF), `Perm` WORD(FFFF), `IntlkBypMask` WORD(0), `PCmdOpen` BOOL (Auto: TRUE = open,
 level), `PCmdHold` BOOL (3-position only), `ModeLock`, `Local`, `Reset`
-**DFB outputs:** `CoilA` BOOL, `CoilB` BOOL (wired to the valve bank's coil image), `IsOpen`, `IsClosed`, `Ready`,
-`Fault`
+**DFB outputs:** `CoilA` BOOL, `CoilB` BOOL (wired to the valve bank's coil image), `IsOpen`, `IsClosed` (confirmed
+or commanded), `IsOpenPrv`, `IsClosedPrv` (proven by a switch only), `Ready`, `Fault`
 **IN_OUT:** **`Hmi`** : `PL_DVlv_HMI`
 
 `PL_DVlv_HMI`:
@@ -336,7 +353,8 @@ level), `PCmdHold` BOOL (3-position only), `ModeLock`, `Local`, `Reset`
 | Member | Type | Notes |
 |---|---|---|
 | `Base` | PL_Base | `State`: 0 Unknown, 1 Closed, 2 Opening, 3 Open, 4 Closing, 5 Mid (3-pos hold), 8 Travel fault, 9 Limit conflict |
-| `DevSts.ZSO`, `.ZSC` | BOOL | Limit switches (after sim substitution) |
+| `DevSts.ZSO`, `.ZSC` | BOOL | Limit switches (after sim substitution). FALSE when not configured |
+| `DevSts.PosConfirmed` | BOOL | Current position is proven by a switch |
 | `DevSts.CoilA`, `.CoilB` | BOOL | Outputs |
 | `DevSts.CmdOpen` | BOOL | Resolved open command (any mode) |
 | `DevSts.Opening`, `.Closing` | BOOL | |
@@ -348,12 +366,13 @@ level), `PCmdHold` BOOL (3-position only), `ModeLock`, `Local`, `Reset`
 | `Alm.LimitConflict` | BOOL | ZSO and ZSC both on |
 | `Alm.StrokeDegr` | BOOL | Last stroke > `StrokeRef_s × Cfg.StrokeDegr` (diagnostic priority) |
 | `Cfg.ValveType` | INT | 1/2/3 above |
-| `Cfg.HasZSO`, `Cfg.HasZSC` | BOOL | If absent, position is inferred after `TravelTmo_s` |
+| `Cfg.HasZSO`, `Cfg.HasZSC` | BOOL | Default FALSE. See "Limit switches are optional" above |
+| `Cfg.TravelTime_s` | REAL | Nominal stroke, used for the Opening/Closing display and to infer position without a switch |
 | `Cfg.FailOpen` | BOOL | Type 1 only |
 | `Cfg.CoilPulse_s`, `Cfg.IntlkAction` | REAL, INT | Types 2/3 |
-| `Cfg.TravelTmo_s`, `Cfg.StrokeDegr` | REAL | |
+| `Cfg.TravelTmo_s`, `Cfg.StrokeDegr` | REAL | Only used with switches |
 | `Cfg.FailAction`, `IntlkLatch`, `InitMode`, `LocalExitMode`, `BypMask`, `BypTime_s`, `SimTravel_s`, `SimOutputsOff` | | Common |
-| `Val.StrokeOpen_s`, `Val.StrokeClose_s`, `Val.StrokeRef_s` | REAL | Trend for valve health |
+| `Val.StrokeOpen_s`, `Val.StrokeClose_s`, `Val.StrokeRef_s` | REAL | Trend for valve health. Only valid with both switches |
 | `Val.Cycles` | DINT | |
 
 ### 6.2 Valve bank – `PL_VBank`
@@ -381,7 +400,7 @@ wired to X80 DI), `PwrOK` BOOL(TRUE) (valve power supply monitor, if available)
 | Member | Type | Notes |
 |---|---|---|
 | `Sts.Healthy`, `.CommOK`, `.AirOK`, `.PwrOK` | BOOL | |
-| `Sts.Coil` | ARRAY[0..31] OF BOOL | Live coil image (leased tag group) |
+| `Sts.Coil` | ARRAY[0..31] OF BOOL | Live coil image |
 | `Alm.CommFlt` | BOOL | High priority. One alarm per bank, not per valve, to avoid floods |
 | `Alm.AirLow`, `Alm.PwrFlt`, `Alm.Diag` | BOOL | |
 | `Cfg.Transport` | INT | 1 EtherNet/IP, 2 Modbus TCP (informational and selects the default mapping) |
@@ -395,9 +414,14 @@ expression.
 
 #### 6.2.2 SMC specifics to confirm in Phase 2
 
-- **SI unit model:** I'm treating this as the EX260-family-style output-only SI unit, using its EDS for EtherNet/IP
-  and its Modbus register map for Modbus TCP. Please confirm the exact part number (Q14). If it has diagnostic input
-  data (short-circuit/open-coil per output, power status), `DiagIn` maps it.
+- **SI unit:** SMC **EX260**, an output-only SI unit (16 or 32 outputs depending on variant).
+  - EtherNet/IP variant: added in the Control Expert DTM browser from SMC's EDS.
+  - Modbus TCP variant: added as a Modbus TCP device with I/O scanning.
+
+  *Phase 2:* get the EDS and Modbus register map for the exact variants used (`docs/vendor/`). Then confirm:
+  - output image size and coil order;
+  - whether any status/diagnostic input data exists for `DiagIn` (if not, `DiagIn` stays 0 and `Alm.Diag` is unused);
+  - the Modbus register byte order that `Cfg.SwapBytes` corrects.
 - **Output behaviour on comm error:** SMC SI units have a HOLD/CLEAR setting. The library standard is **CLEAR (all
   outputs off)**, so single-solenoid and 3-position valves go to their spring state. This must be set on every unit,
   and it goes in the commissioning checklist.
@@ -407,14 +431,14 @@ expression.
 
   `PL_VBank` encapsulates this. Valve calls write `Coil[]` by station and coil letter using a small helper
   convention: `VB_101_Coil[2*Stn+0]` for A and `[2*Stn+1]` for B.
-- **Limit switches:** the SI unit is output-only, so ZSO/ZSC come from elsewhere. Please confirm where (Q15).
+- **Limit switches:** the EX260 is output-only. When a valve does get switches, they come from X80 DI (or another
+  input device). The valve DFB doesn't care where; their channel fault goes into the valve's `IOFlt`.
 
 #### 6.2.3 Call pattern
 
 ```iecst
 (* --- valves on bank VB_101 --- *)
-XV_1001(ZSO := DI_ZSO_1001, ZSC := DI_ZSC_1001,
-        IOFlt := NOT VB_101.Healthy,          (* previous-scan health; 1 scan latency is fine *)
+XV_1001(IOFlt := NOT VB_101.Healthy,          (* no limit switches: ZSO/ZSC left unconnected *)
         Intlk := XV_1001_Ilk.Out, PCmdOpen := Seq100.Fill,
         Hmi := XV_1001_HMI);
 VB_101_Coil[0] := XV_1001.CoilA;             (* station 0 *)
@@ -448,11 +472,9 @@ VB_101_EIP.Outputs := VB_101.OutImg;          (* exact member/area per device DD
 
 ### 6.4 VFD motor – `PL_Vfd` + drive adapter
 
-`PL_Vfd` is **drive-agnostic and transport-agnostic**. It works in engineering units and plain BOOLs. One adapter
-per drive *family* translates to and from that family's control/status words. Both EtherNet/IP (EDS/DTM) and
-Modbus TCP (DTM I/O scanning) deliver the same words into a device DDT, so one adapter serves both transports. Only
-the variable mapping at the call site differs, plus `Cfg.SwapBytes` if needed. `CommFlt` comes from the device DDT's
-freshness/health bit in either case.
+`PL_Vfd` stays **drive-agnostic**: it works in engineering units and plain BOOLs. The **PowerFlex 525** specifics live
+in `PL_PF525_Adp`, so a different drive family later only needs a new adapter. The DDT, UDT and faceplate stay the
+same.
 
 **`PL_Vfd` inputs:** everything in `PL_Mtr` except `RunFbk`/`Ovld`, plus **`DrvRunning`**, **`DrvFault`**,
 `DrvReady`, `DrvFaultCode` INT, `AtSpeed`, **`SpdFbk`** REAL (EU), `Current` REAL, `Power` REAL, **`CommFlt`**,
@@ -464,16 +486,55 @@ freshness/health bit in either case.
 
 | Member | Type | Notes |
 |---|---|---|
-| `DevSts.DrvReady`, `.DrvRunning`, `.AtSpeed`, `.Rev` | BOOL | |
+| `DevSts.DrvReady`, `.DrvRunning`, `.AtSpeed`, `.Rev`, `.STOActive` | BOOL | |
 | `Alm.CommFlt`, `Alm.SpdDev` | BOOL | |
-| `Cfg.SpdMin`, `SpdMax`, `SpdEUFull`, `Ramp_EUs`, `RevAllowed`, `SpdDevLim`, `SpdDevDly_s` | | |
+| `Cfg.SpdMin`, `SpdMax`, `SpdEUFull`, `Ramp_EUs`, `RevAllowed`, `SpdDevLim`, `SpdDevDly_s` | | Speed is in Hz (PF525 native). `SpdEUFull` default 60.0 |
+| `Cfg.HasDiag` | BOOL | TRUE on EtherNet/IP (current, power and fault code available). FALSE when hardwired |
 | `Val.OSpd` | REAL | Operator speed, used in Manual. Tracks `SpdRef` in Auto for bumpless transfer |
 | `Val.SpdRef`, `SpdFbk`, `Current`, `Power` (REAL), `FaultCode` (INT) | | `FaultCode` → text via a per-family dataset in Ignition |
 
-**Adapter** `PL_<Make>_Adp` (e.g. `PL_ATV_Adp` for Altivar): inputs `RunFwd, RunRev, SpdRef, FltReset` and the
-drive's status words. Outputs the control word and speed reference, plus the `Drv*` signals. It also handles the
-drive's comm-loss fault response. Set it to stop/fault on comm loss: a VFD that keeps running at its last speed
-after the network drops is not acceptable as a default.
+#### 6.4.1 PowerFlex 525 – what the library uses
+
+| PF525 capability | Used for |
+|---|---|
+| Embedded EtherNet/IP port, implicit I/O (EDS added in the Control Expert DTM browser) | Control and status every RPI. `CommFlt` = NOT connection freshness from the device DDT |
+| **Logic Command** word | Stop, Start, Clear Faults, Forward/Reverse. Built by the adapter |
+| **Speed Reference** (Hz × 100) | `SpdRef` EU → INT in the adapter |
+| **Logic Status** word | Ready, Active (running), Faulted, At Reference, actual direction, and (where provided) local/network control |
+| **Output Frequency** feedback (Hz × 100) | `SpdFbk` |
+| **Datalinks** (4 in / 4 out, configured by drive parameters) | Default input Datalink assignment: **Output Current**, **Output Power**, **Fault 1 Code**, **DC Bus Voltage**. Output Datalinks are unused by default |
+| Embedded **Safe Torque Off** | STO state is shown on the faceplate (via a Datalink or a hardwired DI). It is never controlled by the library |
+| Comm-loss and PLC-idle fault actions (EN Comm Flt Actn / EN Idle Flt Actn) | Library standard: **Fault** (drive stops) on both. This goes in the commissioning checklist |
+| Start Source / Speed Reference parameters | Set to EtherNet/IP. The keypad or terminal block as a start source counts as **Local** (`Local` input / Local mode) |
+
+*Phase 3:* confirm bit positions, Datalink parameter numbers and fault-action parameter names against the PF525 user
+manual and the EDS revision in use. These are design-level assumptions.
+
+**`PL_PF525_Adp`**
+
+- **Inputs:** `RunFwd`, `RunRev`, `SpdRef` (Hz), `FltReset` (from `PL_Vfd`); the device DDT input assembly (Logic
+  Status, Output Freq, Datalinks); `Freshness`.
+- **Outputs:** Logic Command and Speed Reference (written to the device DDT output assembly); `DrvReady`,
+  `DrvRunning`, `DrvFault`, `AtSpeed`, `SpdFbk`, `Current`, `Power`, `DrvFaultCode`, `CommFlt`, `STOActive` (into
+  `PL_Vfd`).
+- It drives a stop when `RunFwd` = `RunRev` = FALSE, never sets both directions, and pulses Clear Faults for 500 ms.
+- **Fault text:** Ignition dataset `PF525_FaultCodes` (code → text), shared by every PF525 instance.
+
+#### 6.4.2 Comms fallback for the PF525
+
+The PF525 has no native **Modbus TCP**. Its embedded network port is EtherNet/IP, and its other built-in port is
+RS-485 Modbus **RTU**. If EtherNet/IP isn't available, the supported fallbacks are:
+
+1. **Dual-port EtherNet/IP option card (25-COMM-E2P).** This is still EtherNet/IP, so the adapter is unchanged.
+   *Recommended* if the issue is network topology rather than protocol.
+2. **Hardwired.** Run, direction and fault reset go to X80 DO, speed reference to X80 AO, and Running / Faulted / At
+   speed come back on DI, with speed feedback on AI. `PL_Vfd` is used **without an adapter**, and its pins are mapped
+   directly to I/O. `Current`, `Power` and the fault code are then unavailable, and the faceplate hides them
+   (`Cfg.HasDiag = FALSE`).
+3. **Modbus RTU** through an RS-485 serial module or gateway. This is possible but not planned for v1; it would be a
+   second adapter `PL_PF525_RTU_Adp`.
+
+Please confirm option 1 or 2 is acceptable (Q8b).
 
 ### 6.5 Analog (positioned) valve – `PL_AVlv`
 
@@ -562,17 +623,17 @@ PL_Base                       (parent, all commandable device UDTs inherit)
 ├─ Parameters:  OpcServer (per system), PlcVar ("XV_1001_HMI"), OpcNsPrefix, System, Area, Desc, HistProvider, EU
 ├─ Base/        OPC tags → {OpcNsPrefix}{PlcVar}.Base.*
 │   Cmd, CmdRsp, Mode, State, PCmdSts, IntlkFO, BypRemain_s
-│   IntlkOK, PermOK, Byp           (Boolean[] array tags, leased)
+│   IntlkOK, PermOK, Byp           (Boolean[] array tags)
 │   Sts/  Ready, Active, Inactive, Transit, Intlkd, PermNOK, Tripped, Sim, Byp, Local, ModeLocked, PCmdOn, CmdRej, AnyAlm
 ├─ Alm/         IOFlt, IntlkTrip   (OPC BOOL tags, each with one alarm)
 ├─ Derived/     ModeText, StateText (expression + dataset lookup)
 └─ Text/        IntlkDesc, PermDesc (Dataset[16]: Idx, Desc), StateMap
 
 PL_DVlv  (parent = PL_Base)
-├─ DevSts/  ZSO, ZSC, CoilA, CoilB, …     (leased)
+├─ DevSts/  ZSO, ZSC, CoilA, CoilB, PosConfirmed, …
 ├─ Alm/     + FailOpen, FailClose, PosLost, LimitConflict, StrokeDegr
 ├─ Val/     StrokeOpen_s, StrokeClose_s, StrokeRef_s, Cycles  (history on strokes)
-├─ Cfg/     … (leased)
+├─ Cfg/     … (PL_Slow)
 └─ Params:  + Bank ("VB_101"), Station, used for the bank alarm suppression and faceplate link
 
 PL_VBank (standalone)
@@ -581,7 +642,7 @@ PL_VBank (standalone)
 
 - **OPC item path:** `OpcNsPrefix` + `PlcVar` absorbs the BMENUA0100 node-ID format. Browse one variable in each
   system once to confirm it.
-- **Tag groups:** `PL_Alarm`, `PL_Fast`, `PL_Leased` (§4.2).
+- **Tag groups:** `PL_Fast`, `PL_Slow` (§4.2).
 - **History:** on PVs, SP/Out, speed, current and stroke times. `HistProvider` is a parameter.
 - **Bulk creation:** UDT instances come from a CSV instrument list (tag, type, system, area, desc, bank, station,
   interlock text) through `tools/csv_to_udt_instances`.
@@ -734,8 +795,9 @@ tools/                    csv_to_udt_instances, rename_prefix
 - **PLC unit tests:** every DFB with sim ON, run through scripted scenarios: modes, every `Cmd`/`CmdRsp`, interlock
   trip and latch, first-out, bypass expiry, failure alarms, Local and bumpless transfer. For `PL_VBank`: coil
   packing for single- and double-wiring manifolds, byte swap, and comm-loss propagation to valves.
-- **Integration:** use OFS against the Control Expert simulator, or a bench M580 + BMENUA0100 + one SMC bank on
-  EtherNet/IP *and* on Modbus TCP, to prove that a transport swap needs no code change.
+- **Integration:** use OFS against the Control Expert simulator, or a bench M580 + BMENUA0100 + one EX260 bank on
+  EtherNet/IP *and* on Modbus TCP (to prove a transport swap needs no valve code change) + one PF525 on EtherNet/IP
+  (including comm-loss and PLC-stop behaviour).
 - **Acceptance:** a per-object checklist, signed before release.
 
 ---
@@ -759,8 +821,8 @@ tools/                    csv_to_udt_instances, rename_prefix
 |---|---|---|
 | **0** | This spec + remaining answers in §14 | Spec approved (v1.0) |
 | **1** | `PL_Base`/`PL_Core`, `PL_Pack16`, `PL_Global`, `PL_Ain`, `PL_Din`. Ignition base UDT, tag groups, Common views, `pl.*` scripts, ISA-101 style classes. Verify the CE and BMENUA0100 items in §4 | AIN/DIN pass the checklist through BMENUA0100 |
-| **2** | `PL_DVlv` + `PL_VBank` end to end, on an SMC bank over EtherNet/IP and Modbus TCP | Reviewed by you, then pattern frozen |
-| **3** | `PL_Mtr`, `PL_Vfd`, first drive adapter | Checklist pass |
+| **2** | `PL_DVlv` + `PL_VBank` end to end, on an EX260 bank over EtherNet/IP and Modbus TCP, valves with and without limit switches | Reviewed by you, then pattern frozen |
+| **3** | `PL_Mtr`, `PL_Vfd`, `PL_PF525_Adp` | Checklist pass on a bench PF525 |
 | **4** | `PL_AVlv`, `PL_Pid` incl. cascade and the loop↔valve linking | Checklist pass |
 | **5** | CSV import, config backup/restore, rename-prefix tool, docs, `.dtx` release | v1.0 tag |
 
@@ -768,37 +830,29 @@ tools/                    csv_to_udt_instances, rename_prefix
 
 ## 14. Open questions for review
 
-**Answered in v0.2:**
+**Answered:**
 
 | # | Question | Answer |
 |---|---|---|
 | Q1 | Prefix | `PL_`. May change later, so it's kept rename-friendly (§3) |
 | Q2 | Packed or BOOLs | Individual BOOLs |
-| Q4a | OPC UA server | One BMENUA0100 per system |
+| Q4 | OPC UA server / size | One BMENUA0100 per system. Systems have 1–10 (small) or 5–20 (large) devices |
 | Q7 | Colours | ISA-101 grey scale |
-| Q8a | Comms | EtherNet/IP first, Modbus TCP fallback, for valve banks and drives |
-| Q9a | Valves | SMC SY3000 on an Ethernet SI unit |
+| Q8 | Drives | Allen-Bradley PowerFlex 525, EtherNet/IP |
+| Q14 | SI unit | SMC EX260, EtherNet/IP first, Modbus TCP fallback |
+| Q15 | Limit switches | Mostly none. Must be a configurable option (§6.1) |
 
-**Still open:**
+**Still open. The default shown is what I'll build if you don't say otherwise:**
 
-3. **Mode set.** Do you want both Maintenance and Out of Service? Are the initial-mode defaults right (motors
-   Manual, valves Auto)?
-4. **Size.** Roughly how many devices are in the largest system? This is for the BMENUA0100 subscription check.
-5. **Analog / X80 I/O health.** Are fault bits for limit switches and transmitters taken from X80 channel error bits
-   (topological addressing)? Are there remote (eX80) drops?
-6. **Alarm philosophy.** Is there a site document for priorities and response times?
-8. **Drive make and models.** Which VFDs (Altivar, ABB, Allen-Bradley, Danfoss, …)? This decides the first
-   `PL_<Make>_Adp`.
-9. **Valve variants.** Are there valves not on SMC banks (hardwired solenoids from X80 DO, MOVs)? Which SY3000
-   functions are actually used: single, double, 3-position (which center)?
-10. **Config persistence.** Is §10 OK? Is there a database available on the gateway?
-11. **Existing standards.** Is there an existing plant standard or a previous project to match?
-12. **Security.** Which identity provider? Are the Operator / Supervisor / Engineer role names OK?
-13. **Motor protection.** Should starts-per-hour and restart delay be in the PLC, or handled by the protection
-    relay?
-14. **SMC SI unit part number.** You wrote "EX269". I know the EX260 family (output-only SI units for SY manifolds)
-    and the EX600 (modular, with I/O). Please confirm the exact part numbers for the EtherNet/IP and Modbus TCP
-    versions, or drop the manuals or EDS file in `docs/vendor/`.
-15. **Valve limit switches.** The SI unit is output-only, so where are ZSO/ZSC wired: X80 DI cards, a separate
-    Ethernet I/O block (e.g. an EX600 with inputs, or a distributed I/O block), or IO-Link?
-16. **Bank air/power monitoring.** Is there a supply pressure switch and/or valve power monitoring per bank?
+| # | Question | Default if unanswered |
+|---|---|---|
+| Q3 | Mode set and initial modes | All 6 modes. Motors/VFDs start in Manual, valves in Auto |
+| Q5 | I/O health source for X80 points | X80 channel/module error bits via topological addressing |
+| Q6 | Alarm philosophy / priorities | The default priorities in §8.2 |
+| Q8b | PF525 fallback when EtherNet/IP isn't available | Hardwired (option 2 in §6.4.2) |
+| Q9 | SY3000 functions in use. Any valves not on SMC banks? | Library supports single, double and 3-position. Hardwired X80 DO solenoids also work, since `CoilA`/`CoilB` are just BOOLs |
+| Q10 | Config persistence (§10), database on gateway? | Procedure + snapshot to the gateway's existing DB connection, if one exists |
+| Q11 | Existing plant standard to match? | None |
+| Q12 | Identity provider and role names | Ignition internal user source. Roles `Operator`, `Supervisor`, `Engineer` |
+| Q13 | Starts/hr and restart delay in PLC? | In the PLC, disabled by default (`MaxStartsHr = 0`, `RestartDly_s = 0`) |
+| Q16 | Bank air pressure / valve power monitoring | Optional `AirOK`/`PwrOK` pins, default TRUE (not monitored) |
