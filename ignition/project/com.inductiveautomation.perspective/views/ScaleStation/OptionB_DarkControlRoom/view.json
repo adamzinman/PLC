@@ -1,0 +1,1247 @@
+{
+  "custom": {
+    "target": null,
+    "maxPressure": null,
+    "prefill": null,
+    "sample": null,
+    "net": null,
+    "tare": null,
+    "total": null,
+    "message": null,
+    "selected": null
+  },
+  "params": {
+    "tagPath": "[default]Scales/Station1",
+    "stationNum": 1,
+    "weightUnits": "lb",
+    "pressureUnits": "psi"
+  },
+  "propConfig": {
+    "params.tagPath": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.stationNum": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.weightUnits": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.pressureUnits": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "custom.target": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/TargetWeight",
+          "bidirectional": true
+        }
+      }
+    },
+    "custom.maxPressure": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/MaxPressure",
+          "bidirectional": true
+        }
+      }
+    },
+    "custom.prefill": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/PrefillPressure",
+          "bidirectional": true
+        }
+      }
+    },
+    "custom.sample": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/SampleWeight",
+          "bidirectional": true
+        }
+      }
+    },
+    "custom.net": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/NetWeight"
+        }
+      }
+    },
+    "custom.tare": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/TareWeight"
+        }
+      }
+    },
+    "custom.total": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/TotalWeight"
+        }
+      }
+    },
+    "custom.message": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/Message"
+        }
+      }
+    },
+    "custom.selected": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/Selected",
+          "bidirectional": true
+        }
+      }
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "width": 340,
+      "height": 540
+    }
+  },
+  "root": {
+    "type": "ia.container.flex",
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#0E141B",
+        "fontFamily": "'Segoe UI', Roboto, Arial, sans-serif",
+        "padding": "10px 12px",
+        "gap": "8px",
+        "borderWidth": "2px",
+        "borderStyle": "solid"
+      }
+    },
+    "propConfig": {
+      "props.style.borderColor": {
+        "binding": {
+          "type": "expr",
+          "config": {
+            "expression": "if({view.custom.selected}, \"#22C55E\", \"#253241\")"
+          }
+        }
+      }
+    },
+    "children": [
+      {
+        "type": "ia.container.flex",
+        "meta": {
+          "name": "Header"
+        },
+        "position": {
+          "basis": "36px",
+          "grow": 0,
+          "shrink": 0
+        },
+        "props": {
+          "direction": "row",
+          "alignItems": "center"
+        },
+        "children": [
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "Led"
+            },
+            "position": {
+              "basis": "12px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "height": "12px",
+                "borderRadius": "50%"
+              }
+            },
+            "propConfig": {
+              "props.style.backgroundColor": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if({view.custom.selected}, \"#22C55E\", \"#475569\")"
+                  }
+                }
+              },
+              "props.style.boxShadow": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if({view.custom.selected}, \"0 0 8px #22C55E\", \"none\")"
+                  }
+                }
+              }
+            },
+            "children": []
+          },
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "Title"
+            },
+            "position": {
+              "basis": "auto",
+              "grow": 1,
+              "shrink": 1
+            },
+            "props": {
+              "text": "",
+              "style": {
+                "fontSize": "16px",
+                "fontWeight": "600",
+                "letterSpacing": "1px",
+                "color": "#E6EDF3",
+                "paddingLeft": "10px"
+              }
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "\"STATION \" + toStr({view.params.stationNum})"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "StatePill"
+            },
+            "position": {
+              "basis": "90px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "text": "",
+              "style": {
+                "fontSize": "10px",
+                "fontWeight": "bold",
+                "letterSpacing": "1px",
+                "color": "#0E141B",
+                "borderRadius": "10px",
+                "padding": "3px 0",
+                "textAlign": "center",
+                "justifyContent": "center"
+              }
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if({view.custom.selected}, \"SELECTED\", \"STANDBY\")"
+                  }
+                }
+              },
+              "props.style.backgroundColor": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if({view.custom.selected}, \"#22C55E\", \"#475569\")"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "ia.container.flex",
+        "meta": {
+          "name": "NetPanel"
+        },
+        "position": {
+          "basis": "96px",
+          "grow": 0,
+          "shrink": 0
+        },
+        "props": {
+          "direction": "column",
+          "style": {
+            "backgroundColor": "#151E28",
+            "border": "1px solid #253241",
+            "borderRadius": "6px",
+            "padding": "10px 12px"
+          }
+        },
+        "children": [
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "Caption"
+            },
+            "position": {
+              "basis": "16px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "text": "NET WEIGHT",
+              "style": {
+                "fontSize": "10px",
+                "letterSpacing": "1.2px",
+                "color": "#8B9BAD"
+              }
+            }
+          },
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "ValueRow"
+            },
+            "position": {
+              "basis": "auto",
+              "grow": 1,
+              "shrink": 1
+            },
+            "props": {
+              "direction": "row",
+              "alignItems": "baseline"
+            },
+            "children": [
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "Value"
+                },
+                "position": {
+                  "basis": "auto",
+                  "grow": 1,
+                  "shrink": 1
+                },
+                "props": {
+                  "text": "",
+                  "style": {
+                    "fontFamily": "Consolas, 'Roboto Mono', 'Courier New', monospace",
+                    "fontSize": "44px",
+                    "color": "#38BDF8",
+                    "lineHeight": "1"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "type": "expr",
+                      "config": {
+                        "expression": "if(isNull({view.custom.net}), \"--\", numberFormat({view.custom.net}, \"#,##0.0\"))"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "Units"
+                },
+                "position": {
+                  "basis": "auto",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "text": "",
+                  "style": {
+                    "fontSize": "16px",
+                    "color": "#8B9BAD"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "type": "expr",
+                      "config": {
+                        "expression": "{view.params.weightUnits}"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "ia.container.flex",
+        "meta": {
+          "name": "TareTotal"
+        },
+        "position": {
+          "basis": "66px",
+          "grow": 0,
+          "shrink": 0
+        },
+        "props": {
+          "direction": "row",
+          "style": {
+            "gap": "8px"
+          }
+        },
+        "children": [
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "Tare"
+            },
+            "position": {
+              "basis": "0px",
+              "grow": 1,
+              "shrink": 1
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#151E28",
+                "border": "1px solid #253241",
+                "borderRadius": "6px",
+                "padding": "8px 10px"
+              }
+            },
+            "children": [
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "Caption"
+                },
+                "position": {
+                  "basis": "16px",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "text": "TARE",
+                  "style": {
+                    "fontSize": "10px",
+                    "letterSpacing": "1.2px",
+                    "color": "#8B9BAD"
+                  }
+                }
+              },
+              {
+                "type": "ia.container.flex",
+                "meta": {
+                  "name": "ValueRow"
+                },
+                "position": {
+                  "basis": "auto",
+                  "grow": 1,
+                  "shrink": 1
+                },
+                "props": {
+                  "direction": "row",
+                  "alignItems": "baseline"
+                },
+                "children": [
+                  {
+                    "type": "ia.display.label",
+                    "meta": {
+                      "name": "Value"
+                    },
+                    "position": {
+                      "basis": "auto",
+                      "grow": 1,
+                      "shrink": 1
+                    },
+                    "props": {
+                      "text": "",
+                      "style": {
+                        "fontFamily": "Consolas, 'Roboto Mono', 'Courier New', monospace",
+                        "fontSize": "20px",
+                        "color": "#E6EDF3"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "type": "expr",
+                          "config": {
+                            "expression": "if(isNull({view.custom.tare}), \"--\", numberFormat({view.custom.tare}, \"#,##0.0\"))"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "ia.display.label",
+                    "meta": {
+                      "name": "Units"
+                    },
+                    "position": {
+                      "basis": "auto",
+                      "grow": 0,
+                      "shrink": 0
+                    },
+                    "props": {
+                      "text": "",
+                      "style": {
+                        "fontSize": "11px",
+                        "color": "#8B9BAD"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "type": "expr",
+                          "config": {
+                            "expression": "{view.params.weightUnits}"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "Total"
+            },
+            "position": {
+              "basis": "0px",
+              "grow": 1,
+              "shrink": 1
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "backgroundColor": "#151E28",
+                "border": "1px solid #253241",
+                "borderRadius": "6px",
+                "padding": "8px 10px"
+              }
+            },
+            "children": [
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "Caption"
+                },
+                "position": {
+                  "basis": "16px",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "text": "TOTAL",
+                  "style": {
+                    "fontSize": "10px",
+                    "letterSpacing": "1.2px",
+                    "color": "#8B9BAD"
+                  }
+                }
+              },
+              {
+                "type": "ia.container.flex",
+                "meta": {
+                  "name": "ValueRow"
+                },
+                "position": {
+                  "basis": "auto",
+                  "grow": 1,
+                  "shrink": 1
+                },
+                "props": {
+                  "direction": "row",
+                  "alignItems": "baseline"
+                },
+                "children": [
+                  {
+                    "type": "ia.display.label",
+                    "meta": {
+                      "name": "Value"
+                    },
+                    "position": {
+                      "basis": "auto",
+                      "grow": 1,
+                      "shrink": 1
+                    },
+                    "props": {
+                      "text": "",
+                      "style": {
+                        "fontFamily": "Consolas, 'Roboto Mono', 'Courier New', monospace",
+                        "fontSize": "20px",
+                        "color": "#E6EDF3"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "type": "expr",
+                          "config": {
+                            "expression": "if(isNull({view.custom.total}), \"--\", numberFormat({view.custom.total}, \"#,##0.0\"))"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "ia.display.label",
+                    "meta": {
+                      "name": "Units"
+                    },
+                    "position": {
+                      "basis": "auto",
+                      "grow": 0,
+                      "shrink": 0
+                    },
+                    "props": {
+                      "text": "",
+                      "style": {
+                        "fontSize": "11px",
+                        "color": "#8B9BAD"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "type": "expr",
+                          "config": {
+                            "expression": "{view.params.weightUnits}"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "ia.container.flex",
+        "meta": {
+          "name": "Setpoints"
+        },
+        "position": {
+          "basis": "auto",
+          "grow": 0,
+          "shrink": 0
+        },
+        "props": {
+          "direction": "column",
+          "style": {
+            "backgroundColor": "#151E28",
+            "border": "1px solid #253241",
+            "borderRadius": "6px",
+            "padding": "10px 12px",
+            "gap": "8px"
+          }
+        },
+        "children": [
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "Caption"
+            },
+            "position": {
+              "basis": "14px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "text": "SETPOINTS",
+              "style": {
+                "fontSize": "10px",
+                "letterSpacing": "1.2px",
+                "color": "#8B9BAD"
+              }
+            }
+          },
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "Row1"
+            },
+            "position": {
+              "basis": "auto",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "direction": "row",
+              "style": {
+                "gap": "10px"
+              }
+            },
+            "children": [
+              {
+                "type": "ia.container.flex",
+                "meta": {
+                  "name": "targetCell"
+                },
+                "position": {
+                  "basis": "0px",
+                  "grow": 1,
+                  "shrink": 1
+                },
+                "props": {
+                  "direction": "column",
+                  "style": {
+                    "gap": "4px"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "ia.display.label",
+                    "meta": {
+                      "name": "Caption"
+                    },
+                    "position": {
+                      "basis": "16px",
+                      "grow": 0,
+                      "shrink": 0
+                    },
+                    "props": {
+                      "text": "",
+                      "style": {
+                        "fontSize": "10px",
+                        "letterSpacing": "1.2px",
+                        "color": "#8B9BAD"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "type": "expr",
+                          "config": {
+                            "expression": "\"TARGET WEIGHT (\" + {view.params.weightUnits} + \")\""
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "ia.input.numeric-entry-field",
+                    "meta": {
+                      "name": "Field"
+                    },
+                    "position": {
+                      "basis": "32px",
+                      "grow": 0,
+                      "shrink": 0
+                    },
+                    "props": {
+                      "format": "0,0.0",
+                      "style": {
+                        "backgroundColor": "#0A0F14",
+                        "color": "#E6EDF3",
+                        "border": "1px solid #253241",
+                        "borderRadius": "4px",
+                        "fontFamily": "Consolas, 'Roboto Mono', 'Courier New', monospace",
+                        "fontSize": "15px"
+                      }
+                    },
+                    "propConfig": {
+                      "props.value": {
+                        "binding": {
+                          "type": "property",
+                          "config": {
+                            "path": "view.custom.target",
+                            "bidirectional": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "ia.container.flex",
+                "meta": {
+                  "name": "sampleCell"
+                },
+                "position": {
+                  "basis": "0px",
+                  "grow": 1,
+                  "shrink": 1
+                },
+                "props": {
+                  "direction": "column",
+                  "style": {
+                    "gap": "4px"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "ia.display.label",
+                    "meta": {
+                      "name": "Caption"
+                    },
+                    "position": {
+                      "basis": "16px",
+                      "grow": 0,
+                      "shrink": 0
+                    },
+                    "props": {
+                      "text": "",
+                      "style": {
+                        "fontSize": "10px",
+                        "letterSpacing": "1.2px",
+                        "color": "#8B9BAD"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "type": "expr",
+                          "config": {
+                            "expression": "\"SAMPLE WEIGHT (\" + {view.params.weightUnits} + \")\""
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "ia.input.numeric-entry-field",
+                    "meta": {
+                      "name": "Field"
+                    },
+                    "position": {
+                      "basis": "32px",
+                      "grow": 0,
+                      "shrink": 0
+                    },
+                    "props": {
+                      "format": "0,0.0",
+                      "style": {
+                        "backgroundColor": "#0A0F14",
+                        "color": "#E6EDF3",
+                        "border": "1px solid #253241",
+                        "borderRadius": "4px",
+                        "fontFamily": "Consolas, 'Roboto Mono', 'Courier New', monospace",
+                        "fontSize": "15px"
+                      }
+                    },
+                    "propConfig": {
+                      "props.value": {
+                        "binding": {
+                          "type": "property",
+                          "config": {
+                            "path": "view.custom.sample",
+                            "bidirectional": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "Row2"
+            },
+            "position": {
+              "basis": "auto",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "direction": "row",
+              "style": {
+                "gap": "10px"
+              }
+            },
+            "children": [
+              {
+                "type": "ia.container.flex",
+                "meta": {
+                  "name": "maxPressureCell"
+                },
+                "position": {
+                  "basis": "0px",
+                  "grow": 1,
+                  "shrink": 1
+                },
+                "props": {
+                  "direction": "column",
+                  "style": {
+                    "gap": "4px"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "ia.display.label",
+                    "meta": {
+                      "name": "Caption"
+                    },
+                    "position": {
+                      "basis": "16px",
+                      "grow": 0,
+                      "shrink": 0
+                    },
+                    "props": {
+                      "text": "",
+                      "style": {
+                        "fontSize": "10px",
+                        "letterSpacing": "1.2px",
+                        "color": "#8B9BAD"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "type": "expr",
+                          "config": {
+                            "expression": "\"MAX PRESS. (\" + {view.params.pressureUnits} + \")\""
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "ia.input.numeric-entry-field",
+                    "meta": {
+                      "name": "Field"
+                    },
+                    "position": {
+                      "basis": "32px",
+                      "grow": 0,
+                      "shrink": 0
+                    },
+                    "props": {
+                      "format": "0,0.0",
+                      "style": {
+                        "backgroundColor": "#0A0F14",
+                        "color": "#E6EDF3",
+                        "border": "1px solid #253241",
+                        "borderRadius": "4px",
+                        "fontFamily": "Consolas, 'Roboto Mono', 'Courier New', monospace",
+                        "fontSize": "15px"
+                      }
+                    },
+                    "propConfig": {
+                      "props.value": {
+                        "binding": {
+                          "type": "property",
+                          "config": {
+                            "path": "view.custom.maxPressure",
+                            "bidirectional": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "ia.container.flex",
+                "meta": {
+                  "name": "prefillCell"
+                },
+                "position": {
+                  "basis": "0px",
+                  "grow": 1,
+                  "shrink": 1
+                },
+                "props": {
+                  "direction": "column",
+                  "style": {
+                    "gap": "4px"
+                  }
+                },
+                "children": [
+                  {
+                    "type": "ia.display.label",
+                    "meta": {
+                      "name": "Caption"
+                    },
+                    "position": {
+                      "basis": "16px",
+                      "grow": 0,
+                      "shrink": 0
+                    },
+                    "props": {
+                      "text": "",
+                      "style": {
+                        "fontSize": "10px",
+                        "letterSpacing": "1.2px",
+                        "color": "#8B9BAD"
+                      }
+                    },
+                    "propConfig": {
+                      "props.text": {
+                        "binding": {
+                          "type": "expr",
+                          "config": {
+                            "expression": "\"PREFILL PRESS. (\" + {view.params.pressureUnits} + \")\""
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "ia.input.numeric-entry-field",
+                    "meta": {
+                      "name": "Field"
+                    },
+                    "position": {
+                      "basis": "32px",
+                      "grow": 0,
+                      "shrink": 0
+                    },
+                    "props": {
+                      "format": "0,0.0",
+                      "style": {
+                        "backgroundColor": "#0A0F14",
+                        "color": "#E6EDF3",
+                        "border": "1px solid #253241",
+                        "borderRadius": "4px",
+                        "fontFamily": "Consolas, 'Roboto Mono', 'Courier New', monospace",
+                        "fontSize": "15px"
+                      }
+                    },
+                    "propConfig": {
+                      "props.value": {
+                        "binding": {
+                          "type": "property",
+                          "config": {
+                            "path": "view.custom.prefill",
+                            "bidirectional": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "ia.container.flex",
+        "meta": {
+          "name": "Console"
+        },
+        "position": {
+          "basis": "64px",
+          "grow": 0,
+          "shrink": 0
+        },
+        "props": {
+          "direction": "column",
+          "style": {
+            "backgroundColor": "#0A0F14",
+            "border": "1px solid #253241",
+            "borderRadius": "6px",
+            "padding": "6px 10px",
+            "gap": "2px"
+          }
+        },
+        "children": [
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "Caption"
+            },
+            "position": {
+              "basis": "14px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "text": "PLC MESSAGE",
+              "style": {
+                "fontSize": "10px",
+                "letterSpacing": "1.2px",
+                "color": "#8B9BAD"
+              }
+            }
+          },
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "Message"
+            },
+            "position": {
+              "basis": "auto",
+              "grow": 1,
+              "shrink": 1
+            },
+            "props": {
+              "text": "",
+              "style": {
+                "fontFamily": "Consolas, 'Roboto Mono', 'Courier New', monospace",
+                "fontSize": "13px",
+                "whiteSpace": "normal",
+                "alignItems": "flex-start",
+                "overflowY": "auto"
+              }
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "\"> \" + if(len(trim(coalesce({view.custom.message}, \"\"))) > 0, {view.custom.message}, \"No message\")"
+                  }
+                }
+              },
+              "props.style.color": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if(len(trim(coalesce({view.custom.message}, \"\"))) > 0, \"#4ADE80\", \"#8B9BAD\")"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "ia.container.flex",
+        "meta": {
+          "name": "Footer"
+        },
+        "position": {
+          "basis": "44px",
+          "grow": 0,
+          "shrink": 0
+        },
+        "props": {
+          "direction": "row",
+          "alignItems": "center",
+          "style": {
+            "backgroundColor": "#151E28",
+            "border": "1px solid #253241",
+            "borderRadius": "6px",
+            "padding": "0 12px"
+          }
+        },
+        "children": [
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "Label"
+            },
+            "position": {
+              "basis": "auto",
+              "grow": 1,
+              "shrink": 1
+            },
+            "props": {
+              "text": "",
+              "style": {
+                "fontSize": "13px",
+                "color": "#E6EDF3"
+              }
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if({view.custom.selected}, \"Station selected\", \"Station not selected\")"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "ia.input.toggle-switch",
+            "meta": {
+              "name": "SelectToggle"
+            },
+            "position": {
+              "basis": "60px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "selected": false
+            },
+            "propConfig": {
+              "props.selected": {
+                "binding": {
+                  "type": "property",
+                  "config": {
+                    "path": "view.custom.selected",
+                    "bidirectional": true
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

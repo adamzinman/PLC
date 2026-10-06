@@ -1,0 +1,199 @@
+{
+  "custom": {
+    "faceplate": "ScaleStation/OptionA_HighPerformance"
+  },
+  "params": {},
+  "props": {
+    "defaultSize": {
+      "width": 1400,
+      "height": 1100
+    }
+  },
+  "root": {
+    "type": "ia.container.flex",
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#E9ECEF",
+        "fontFamily": "'Segoe UI', Roboto, Arial, sans-serif"
+      }
+    },
+    "children": [
+      {
+        "type": "ia.container.flex",
+        "meta": {
+          "name": "Header"
+        },
+        "position": {
+          "basis": "48px",
+          "grow": 0,
+          "shrink": 0
+        },
+        "props": {
+          "direction": "row",
+          "alignItems": "center",
+          "style": {
+            "padding": "0 16px"
+          }
+        },
+        "children": [
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "Title"
+            },
+            "position": {
+              "basis": "auto",
+              "grow": 1,
+              "shrink": 1
+            },
+            "props": {
+              "text": "Scale Stations",
+              "style": {
+                "fontSize": "20px",
+                "fontWeight": "700",
+                "color": "#1F2933"
+              }
+            }
+          },
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "PickerLabel"
+            },
+            "position": {
+              "basis": "80px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "text": "Faceplate",
+              "style": {
+                "fontSize": "13px",
+                "color": "#64707D"
+              }
+            }
+          },
+          {
+            "type": "ia.input.dropdown",
+            "meta": {
+              "name": "FaceplatePicker"
+            },
+            "position": {
+              "basis": "260px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "options": [
+                {
+                  "value": "ScaleStation/OptionA_HighPerformance",
+                  "label": "A - ISA-101 High Performance"
+                },
+                {
+                  "value": "ScaleStation/OptionB_DarkControlRoom",
+                  "label": "B - Dark Control Room"
+                },
+                {
+                  "value": "ScaleStation/OptionC_TouchCards",
+                  "label": "C - Touch Cards"
+                },
+                {
+                  "value": "ScaleStation/OptionD_CompactTile",
+                  "label": "D - Compact Fill Tile"
+                }
+              ],
+              "value": "ScaleStation/OptionA_HighPerformance"
+            },
+            "propConfig": {
+              "props.value": {
+                "binding": {
+                  "type": "property",
+                  "config": {
+                    "path": "view.custom.faceplate",
+                    "bidirectional": true
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "ia.display.flex-repeater",
+        "meta": {
+          "name": "Stations"
+        },
+        "position": {
+          "basis": "auto",
+          "grow": 1,
+          "shrink": 1
+        },
+        "props": {
+          "path": "ScaleStation/OptionA_HighPerformance",
+          "instances": [
+            {
+              "tagPath": "[default]Scales/Station1",
+              "stationNum": 1,
+              "weightUnits": "lb",
+              "pressureUnits": "psi"
+            },
+            {
+              "tagPath": "[default]Scales/Station2",
+              "stationNum": 2,
+              "weightUnits": "lb",
+              "pressureUnits": "psi"
+            },
+            {
+              "tagPath": "[default]Scales/Station3",
+              "stationNum": 3,
+              "weightUnits": "lb",
+              "pressureUnits": "psi"
+            },
+            {
+              "tagPath": "[default]Scales/Station4",
+              "stationNum": 4,
+              "weightUnits": "lb",
+              "pressureUnits": "psi"
+            },
+            {
+              "tagPath": "[default]Scales/Station5",
+              "stationNum": 5,
+              "weightUnits": "lb",
+              "pressureUnits": "psi"
+            },
+            {
+              "tagPath": "[default]Scales/Station6",
+              "stationNum": 6,
+              "weightUnits": "lb",
+              "pressureUnits": "psi"
+            }
+          ],
+          "direction": "row",
+          "wrap": "wrap",
+          "alignContent": "flex-start",
+          "useDefaultViewWidth": true,
+          "useDefaultViewHeight": true,
+          "style": {
+            "gap": "12px",
+            "padding": "0 16px 16px",
+            "overflowY": "auto"
+          }
+        },
+        "propConfig": {
+          "props.path": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "path": "view.custom.faceplate"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

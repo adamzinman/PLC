@@ -1,0 +1,1116 @@
+{
+  "custom": {
+    "target": null,
+    "maxPressure": null,
+    "prefill": null,
+    "sample": null,
+    "net": null,
+    "tare": null,
+    "total": null,
+    "message": null,
+    "selected": null,
+    "pctOfTarget": null
+  },
+  "params": {
+    "tagPath": "[default]Scales/Station1",
+    "stationNum": 1,
+    "weightUnits": "lb",
+    "pressureUnits": "psi"
+  },
+  "propConfig": {
+    "params.tagPath": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.stationNum": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.weightUnits": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "params.pressureUnits": {
+      "paramDirection": "input",
+      "persistent": true
+    },
+    "custom.target": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/TargetWeight",
+          "bidirectional": true
+        }
+      }
+    },
+    "custom.maxPressure": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/MaxPressure",
+          "bidirectional": true
+        }
+      }
+    },
+    "custom.prefill": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/PrefillPressure",
+          "bidirectional": true
+        }
+      }
+    },
+    "custom.sample": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/SampleWeight",
+          "bidirectional": true
+        }
+      }
+    },
+    "custom.net": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/NetWeight"
+        }
+      }
+    },
+    "custom.tare": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/TareWeight"
+        }
+      }
+    },
+    "custom.total": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/TotalWeight"
+        }
+      }
+    },
+    "custom.message": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/Message"
+        }
+      }
+    },
+    "custom.selected": {
+      "binding": {
+        "type": "tag",
+        "config": {
+          "fallbackDelay": 2.5,
+          "mode": "indirect",
+          "references": {
+            "station": "{view.params.tagPath}"
+          },
+          "tagPath": "{station}/Selected",
+          "bidirectional": true
+        }
+      }
+    },
+    "custom.pctOfTarget": {
+      "binding": {
+        "type": "expr",
+        "config": {
+          "expression": "if(coalesce({view.custom.target}, 0) <= 0, 0, min(100, max(0, 100.0 * coalesce({view.custom.net}, 0) / {view.custom.target})))"
+        }
+      }
+    }
+  },
+  "props": {
+    "defaultSize": {
+      "width": 230,
+      "height": 480
+    }
+  },
+  "root": {
+    "type": "ia.container.flex",
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "backgroundColor": "#F7F8FA",
+        "fontFamily": "'Segoe UI', Roboto, Arial, sans-serif",
+        "border": "1px solid #CBD2DC",
+        "borderRadius": "6px",
+        "overflow": "hidden"
+      }
+    },
+    "children": [
+      {
+        "type": "ia.container.flex",
+        "meta": {
+          "name": "Header"
+        },
+        "position": {
+          "basis": "54px",
+          "grow": 0,
+          "shrink": 0
+        },
+        "props": {
+          "direction": "row",
+          "alignItems": "center",
+          "style": {
+            "padding": "0 10px",
+            "height": "54px"
+          }
+        },
+        "propConfig": {
+          "props.style.backgroundColor": {
+            "binding": {
+              "type": "expr",
+              "config": {
+                "expression": "if({view.custom.selected}, \"#0F7B4F\", \"#3A4655\")"
+              }
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "Number"
+            },
+            "position": {
+              "basis": "34px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "text": "",
+              "style": {
+                "height": "34px",
+                "borderRadius": "50%",
+                "backgroundColor": "rgba(255,255,255,0.18)",
+                "color": "#FFFFFF",
+                "fontSize": "18px",
+                "fontWeight": "700",
+                "textAlign": "center",
+                "justifyContent": "center"
+              }
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "toStr({view.params.stationNum})"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "Titles"
+            },
+            "position": {
+              "basis": "auto",
+              "grow": 1,
+              "shrink": 1
+            },
+            "props": {
+              "direction": "column",
+              "style": {
+                "paddingLeft": "8px"
+              }
+            },
+            "children": [
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "Title"
+                },
+                "position": {
+                  "basis": "16px",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "text": "STATION",
+                  "style": {
+                    "fontSize": "11px",
+                    "letterSpacing": "1.5px",
+                    "color": "rgba(255,255,255,0.75)"
+                  }
+                }
+              },
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "State"
+                },
+                "position": {
+                  "basis": "18px",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "text": "",
+                  "style": {
+                    "fontSize": "13px",
+                    "fontWeight": "700",
+                    "color": "#FFFFFF"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "type": "expr",
+                      "config": {
+                        "expression": "if({view.custom.selected}, \"SELECTED\", \"IDLE\")"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "ia.input.button",
+            "meta": {
+              "name": "SelectButton"
+            },
+            "position": {
+              "basis": "74px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "text": "",
+              "style": {
+                "fontSize": "11px",
+                "fontWeight": "700",
+                "borderRadius": "4px",
+                "border": "1px solid rgba(255,255,255,0.6)",
+                "padding": "0 6px"
+              }
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if({view.custom.selected}, \"DESELECT\", \"SELECT\")"
+                  }
+                }
+              },
+              "props.style.backgroundColor": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if({view.custom.selected}, \"#FFFFFF\", \"transparent\")"
+                  }
+                }
+              },
+              "props.style.color": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if({view.custom.selected}, \"#0F7B4F\", \"#FFFFFF\")"
+                  }
+                }
+              }
+            },
+            "events": {
+              "component": {
+                "onActionPerformed": {
+                  "config": {
+                    "script": "\tpath = \"%s/Selected\" % self.view.params.tagPath\n\tcurrent = system.tag.readBlocking([path])[0].value\n\tsystem.tag.writeBlocking([path], [not bool(current)])"
+                  },
+                  "scope": "G",
+                  "type": "script"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "ia.container.flex",
+        "meta": {
+          "name": "Net"
+        },
+        "position": {
+          "basis": "auto",
+          "grow": 0,
+          "shrink": 0
+        },
+        "props": {
+          "direction": "column",
+          "style": {
+            "padding": "8px 10px 4px"
+          }
+        },
+        "children": [
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "Caption"
+            },
+            "position": {
+              "basis": "14px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "text": "NET",
+              "style": {
+                "fontSize": "11px",
+                "letterSpacing": "1.5px",
+                "color": "#64707D",
+                "justifyContent": "center"
+              }
+            }
+          },
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "Value"
+            },
+            "position": {
+              "basis": "40px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "text": "",
+              "style": {
+                "fontSize": "34px",
+                "fontWeight": "700",
+                "color": "#1F2933",
+                "justifyContent": "center",
+                "fontVariantNumeric": "tabular-nums"
+              }
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "if(isNull({view.custom.net}), \"--\", numberFormat({view.custom.net}, \"#,##0.0\"))"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "Units"
+            },
+            "position": {
+              "basis": "14px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "text": "",
+              "style": {
+                "fontSize": "11px",
+                "color": "#64707D",
+                "justifyContent": "center"
+              }
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "{view.params.weightUnits}"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "ia.container.flex",
+        "meta": {
+          "name": "FillBar"
+        },
+        "position": {
+          "basis": "auto",
+          "grow": 0,
+          "shrink": 0
+        },
+        "props": {
+          "direction": "column",
+          "style": {
+            "padding": "0 12px",
+            "gap": "4px"
+          }
+        },
+        "children": [
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "Track"
+            },
+            "position": {
+              "basis": "10px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "direction": "row",
+              "style": {
+                "backgroundColor": "#E2E8F0",
+                "borderRadius": "5px",
+                "overflow": "hidden"
+              }
+            },
+            "children": [
+              {
+                "type": "ia.container.flex",
+                "meta": {
+                  "name": "Fill"
+                },
+                "position": {
+                  "basis": "0%",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "direction": "column"
+                },
+                "propConfig": {
+                  "position.basis": {
+                    "binding": {
+                      "type": "expr",
+                      "config": {
+                        "expression": "toStr(round({view.custom.pctOfTarget}, 1)) + \"%\""
+                      }
+                    }
+                  },
+                  "props.style.backgroundColor": {
+                    "binding": {
+                      "type": "expr",
+                      "config": {
+                        "expression": "if({view.custom.pctOfTarget} >= 100, \"#16A34A\", \"#2563EB\")"
+                      }
+                    }
+                  }
+                },
+                "children": []
+              }
+            ]
+          },
+          {
+            "type": "ia.display.label",
+            "meta": {
+              "name": "Caption"
+            },
+            "position": {
+              "basis": "16px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "text": "",
+              "style": {
+                "fontSize": "11px",
+                "color": "#64707D",
+                "justifyContent": "center"
+              }
+            },
+            "propConfig": {
+              "props.text": {
+                "binding": {
+                  "type": "expr",
+                  "config": {
+                    "expression": "numberFormat({view.custom.pctOfTarget}, \"0\") + \"% of target  (\" + if(isNull({view.custom.target}), \"--\", numberFormat({view.custom.target}, \"#,##0.0\")) + \" \" + {view.params.weightUnits} + \")\""
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "ia.container.flex",
+        "meta": {
+          "name": "TareTotal"
+        },
+        "position": {
+          "basis": "auto",
+          "grow": 0,
+          "shrink": 0
+        },
+        "props": {
+          "direction": "row",
+          "style": {
+            "margin": "8px 10px",
+            "padding": "6px 0",
+            "borderTop": "1px solid #CBD2DC",
+            "borderBottom": "1px solid #CBD2DC"
+          }
+        },
+        "children": [
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "tareMini"
+            },
+            "position": {
+              "basis": "0px",
+              "grow": 1,
+              "shrink": 1
+            },
+            "props": {
+              "direction": "column"
+            },
+            "children": [
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "Caption"
+                },
+                "position": {
+                  "basis": "14px",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "text": "TARE",
+                  "style": {
+                    "fontSize": "10px",
+                    "letterSpacing": "1px",
+                    "color": "#64707D",
+                    "justifyContent": "center"
+                  }
+                }
+              },
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "Value"
+                },
+                "position": {
+                  "basis": "20px",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "text": "",
+                  "style": {
+                    "fontSize": "15px",
+                    "fontWeight": "600",
+                    "color": "#1F2933",
+                    "justifyContent": "center",
+                    "fontVariantNumeric": "tabular-nums"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "type": "expr",
+                      "config": {
+                        "expression": "if(isNull({view.custom.tare}), \"--\", numberFormat({view.custom.tare}, \"#,##0.0\"))"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "totalMini"
+            },
+            "position": {
+              "basis": "0px",
+              "grow": 1,
+              "shrink": 1
+            },
+            "props": {
+              "direction": "column"
+            },
+            "children": [
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "Caption"
+                },
+                "position": {
+                  "basis": "14px",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "text": "TOTAL",
+                  "style": {
+                    "fontSize": "10px",
+                    "letterSpacing": "1px",
+                    "color": "#64707D",
+                    "justifyContent": "center"
+                  }
+                }
+              },
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "Value"
+                },
+                "position": {
+                  "basis": "20px",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "text": "",
+                  "style": {
+                    "fontSize": "15px",
+                    "fontWeight": "600",
+                    "color": "#1F2933",
+                    "justifyContent": "center",
+                    "fontVariantNumeric": "tabular-nums"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "type": "expr",
+                      "config": {
+                        "expression": "if(isNull({view.custom.total}), \"--\", numberFormat({view.custom.total}, \"#,##0.0\"))"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "ia.container.flex",
+        "meta": {
+          "name": "Setpoints"
+        },
+        "position": {
+          "basis": "auto",
+          "grow": 0,
+          "shrink": 0
+        },
+        "props": {
+          "direction": "column",
+          "style": {
+            "padding": "0 10px",
+            "gap": "4px"
+          }
+        },
+        "children": [
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "targetRow"
+            },
+            "position": {
+              "basis": "28px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "direction": "row",
+              "alignItems": "center"
+            },
+            "children": [
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "Label"
+                },
+                "position": {
+                  "basis": "auto",
+                  "grow": 1,
+                  "shrink": 1
+                },
+                "props": {
+                  "text": "",
+                  "style": {
+                    "fontSize": "12px",
+                    "color": "#1F2933"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "type": "expr",
+                      "config": {
+                        "expression": "\"Target (\" + {view.params.weightUnits} + \")\""
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "ia.input.numeric-entry-field",
+                "meta": {
+                  "name": "Field"
+                },
+                "position": {
+                  "basis": "84px",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "format": "0,0.0",
+                  "style": {
+                    "fontSize": "13px",
+                    "border": "1px solid #CBD2DC",
+                    "borderRadius": "3px",
+                    "backgroundColor": "#FFFFFF"
+                  }
+                },
+                "propConfig": {
+                  "props.value": {
+                    "binding": {
+                      "type": "property",
+                      "config": {
+                        "path": "view.custom.target",
+                        "bidirectional": true
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "sampleRow"
+            },
+            "position": {
+              "basis": "28px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "direction": "row",
+              "alignItems": "center"
+            },
+            "children": [
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "Label"
+                },
+                "position": {
+                  "basis": "auto",
+                  "grow": 1,
+                  "shrink": 1
+                },
+                "props": {
+                  "text": "",
+                  "style": {
+                    "fontSize": "12px",
+                    "color": "#1F2933"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "type": "expr",
+                      "config": {
+                        "expression": "\"Sample (\" + {view.params.weightUnits} + \")\""
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "ia.input.numeric-entry-field",
+                "meta": {
+                  "name": "Field"
+                },
+                "position": {
+                  "basis": "84px",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "format": "0,0.0",
+                  "style": {
+                    "fontSize": "13px",
+                    "border": "1px solid #CBD2DC",
+                    "borderRadius": "3px",
+                    "backgroundColor": "#FFFFFF"
+                  }
+                },
+                "propConfig": {
+                  "props.value": {
+                    "binding": {
+                      "type": "property",
+                      "config": {
+                        "path": "view.custom.sample",
+                        "bidirectional": true
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "maxPressureRow"
+            },
+            "position": {
+              "basis": "28px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "direction": "row",
+              "alignItems": "center"
+            },
+            "children": [
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "Label"
+                },
+                "position": {
+                  "basis": "auto",
+                  "grow": 1,
+                  "shrink": 1
+                },
+                "props": {
+                  "text": "",
+                  "style": {
+                    "fontSize": "12px",
+                    "color": "#1F2933"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "type": "expr",
+                      "config": {
+                        "expression": "\"Max press. (\" + {view.params.pressureUnits} + \")\""
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "ia.input.numeric-entry-field",
+                "meta": {
+                  "name": "Field"
+                },
+                "position": {
+                  "basis": "84px",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "format": "0,0.0",
+                  "style": {
+                    "fontSize": "13px",
+                    "border": "1px solid #CBD2DC",
+                    "borderRadius": "3px",
+                    "backgroundColor": "#FFFFFF"
+                  }
+                },
+                "propConfig": {
+                  "props.value": {
+                    "binding": {
+                      "type": "property",
+                      "config": {
+                        "path": "view.custom.maxPressure",
+                        "bidirectional": true
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "ia.container.flex",
+            "meta": {
+              "name": "prefillRow"
+            },
+            "position": {
+              "basis": "28px",
+              "grow": 0,
+              "shrink": 0
+            },
+            "props": {
+              "direction": "row",
+              "alignItems": "center"
+            },
+            "children": [
+              {
+                "type": "ia.display.label",
+                "meta": {
+                  "name": "Label"
+                },
+                "position": {
+                  "basis": "auto",
+                  "grow": 1,
+                  "shrink": 1
+                },
+                "props": {
+                  "text": "",
+                  "style": {
+                    "fontSize": "12px",
+                    "color": "#1F2933"
+                  }
+                },
+                "propConfig": {
+                  "props.text": {
+                    "binding": {
+                      "type": "expr",
+                      "config": {
+                        "expression": "\"Prefill (\" + {view.params.pressureUnits} + \")\""
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "ia.input.numeric-entry-field",
+                "meta": {
+                  "name": "Field"
+                },
+                "position": {
+                  "basis": "84px",
+                  "grow": 0,
+                  "shrink": 0
+                },
+                "props": {
+                  "format": "0,0.0",
+                  "style": {
+                    "fontSize": "13px",
+                    "border": "1px solid #CBD2DC",
+                    "borderRadius": "3px",
+                    "backgroundColor": "#FFFFFF"
+                  }
+                },
+                "propConfig": {
+                  "props.value": {
+                    "binding": {
+                      "type": "property",
+                      "config": {
+                        "path": "view.custom.prefill",
+                        "bidirectional": true
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "Message"
+        },
+        "position": {
+          "basis": "auto",
+          "grow": 1,
+          "shrink": 1
+        },
+        "props": {
+          "text": "",
+          "style": {
+            "margin": "8px 10px 10px",
+            "padding": "6px 8px",
+            "fontSize": "12px",
+            "whiteSpace": "normal",
+            "alignItems": "flex-start",
+            "overflowY": "auto",
+            "backgroundColor": "#FFFFFF",
+            "borderLeftWidth": "4px",
+            "borderLeftStyle": "solid",
+            "minHeight": "40px"
+          }
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "type": "expr",
+              "config": {
+                "expression": "if(len(trim(coalesce({view.custom.message}, \"\"))) > 0, {view.custom.message}, \"No message\")"
+              }
+            }
+          },
+          "props.style.borderLeftColor": {
+            "binding": {
+              "type": "expr",
+              "config": {
+                "expression": "if(len(trim(coalesce({view.custom.message}, \"\"))) > 0, \"#D97706\", \"#CBD2DC\")"
+              }
+            }
+          },
+          "props.style.color": {
+            "binding": {
+              "type": "expr",
+              "config": {
+                "expression": "if(len(trim(coalesce({view.custom.message}, \"\"))) > 0, \"#1F2933\", \"#64707D\")"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

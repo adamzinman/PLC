@@ -1,0 +1,137 @@
+{
+  "tags": [
+    {
+      "name": "_types_",
+      "tagType": "Folder",
+      "tags": [
+        {
+          "name": "ScaleStation",
+          "tagType": "UdtType",
+          "tags": [
+            {
+              "name": "TargetWeight",
+              "tagType": "AtomicTag",
+              "valueSource": "memory",
+              "dataType": "Float4",
+              "value": 50.0,
+              "engUnit": "lb",
+              "documentation": "Operator input: target fill weight"
+            },
+            {
+              "name": "MaxPressure",
+              "tagType": "AtomicTag",
+              "valueSource": "memory",
+              "dataType": "Float4",
+              "value": 30.0,
+              "engUnit": "psi",
+              "documentation": "Operator input: maximum pressure"
+            },
+            {
+              "name": "PrefillPressure",
+              "tagType": "AtomicTag",
+              "valueSource": "memory",
+              "dataType": "Float4",
+              "value": 5.0,
+              "engUnit": "psi",
+              "documentation": "Operator input: prefill pressure"
+            },
+            {
+              "name": "SampleWeight",
+              "tagType": "AtomicTag",
+              "valueSource": "memory",
+              "dataType": "Float4",
+              "value": 2.5,
+              "engUnit": "lb",
+              "documentation": "Operator input: sample weight"
+            },
+            {
+              "name": "NetWeight",
+              "tagType": "AtomicTag",
+              "valueSource": "memory",
+              "dataType": "Float4",
+              "value": 0.0,
+              "engUnit": "lb",
+              "documentation": "From PLC: net weight"
+            },
+            {
+              "name": "TareWeight",
+              "tagType": "AtomicTag",
+              "valueSource": "memory",
+              "dataType": "Float4",
+              "value": 0.0,
+              "engUnit": "lb",
+              "documentation": "From PLC: tare weight"
+            },
+            {
+              "name": "TotalWeight",
+              "tagType": "AtomicTag",
+              "valueSource": "memory",
+              "dataType": "Float4",
+              "value": 0.0,
+              "engUnit": "lb",
+              "documentation": "From PLC: total (gross) weight"
+            },
+            {
+              "name": "Message",
+              "tagType": "AtomicTag",
+              "valueSource": "memory",
+              "dataType": "String",
+              "value": "",
+              "documentation": "From PLC: operator message string"
+            },
+            {
+              "name": "Selected",
+              "tagType": "AtomicTag",
+              "valueSource": "memory",
+              "dataType": "Boolean",
+              "value": false,
+              "documentation": "Station selected for use"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Scales",
+      "tagType": "Folder",
+      "tags": [
+        {
+          "name": "Station1",
+          "tagType": "UdtInstance",
+          "typeId": "ScaleStation",
+          "tags": []
+        },
+        {
+          "name": "Station2",
+          "tagType": "UdtInstance",
+          "typeId": "ScaleStation",
+          "tags": []
+        },
+        {
+          "name": "Station3",
+          "tagType": "UdtInstance",
+          "typeId": "ScaleStation",
+          "tags": []
+        },
+        {
+          "name": "Station4",
+          "tagType": "UdtInstance",
+          "typeId": "ScaleStation",
+          "tags": []
+        },
+        {
+          "name": "Station5",
+          "tagType": "UdtInstance",
+          "typeId": "ScaleStation",
+          "tags": []
+        },
+        {
+          "name": "Station6",
+          "tagType": "UdtInstance",
+          "typeId": "ScaleStation",
+          "tags": []
+        }
+      ]
+    }
+  ]
+}
