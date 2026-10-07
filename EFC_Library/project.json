@@ -1,0 +1,7 @@
+{
+  "title": "EFC_Library",
+  "description": "EFC Ignition Perspective 8.1 library: EFC_Styles v5.1, PID symbol templates v5.1, PID loop templates, Process Value templates v1.3.0 and x80 I/O faceplates in one project. Import standalone, or make it the parent of an HMI project.",
+  "parent": "",
+  "enabled": true,
+  "inheritable": true
+}

@@ -1,0 +1,43 @@
+# Changelog
+
+Newest first. Versions match `VERSION.json` and the git tags (`v5.1`, ...).
+
+- **v5.1 (verified on the gateway with `[EFC]RGTCR/Valves/AV002`):**
+  - **Symbols are embedded as Drawing elements** with state-bound fills, outlines and weights, replacing the Image / data-URI source that could show as a broken link.
+  - The Drawing `preserveAspectRatio` is `xMidYMid`; 8.1 rejects `xMidYMid meet`. `check_81.py` now checks this enum.
+  - **Alarm lookup is quality-guarded** (see the Alarm lookup bullet above). This clears the red `alarm`, `line` and `lw` bindings.
+  - **Known:** `permMissing` shows Bad_NodeIdUnknown until the `Permissive` variable exists in the PLC. The template treats it as "not missing" in the meantime.
+- **v5:**
+  - The ISA-101 audit fixes above.
+  - **Status stays centered when the M isn't used.** The hidden manual M (button mode, or Auto) now collapses to zero width: `meta.visible` is false and it also gets `Util/Collapsed`. The status chip centers alone on the symbol centerline (0.0 px offset, measured in the preview). When the M is shown (`useButton` = false, Manual), the M and status are centered together.
+  - Project names are unchanged (`EFC_Styles`, `PID_Symbols`, `EFC_PID_Library`), so importing v5 overwrites v4.
+- **v4.5 (live-gateway fixes):**
+  - **Null-safe reads:** every read of a tag-bound property is wrapped in `coalesce()`, so a missing, bad or loading UDT member (for example the new `Permissive` on `DDT_Valve`) no longer puts `canCmd`, `state` and the colors into error. The defaults are safe: no permissive missing, no interlock, not manual, feedback enabled.
+  - **Alarm lookup:** wrapped in `try(..., 0)`, so it falls back to "no alarm" instead of erroring.
+  - **Valve I tooltip:** now reads the `InterlockList` document (`InterlockName[]`, `Description[]`, `Used[]`) with a script transform and lists the used interlocks by name.
+- **v4.4:**
+  - **Command button:** the manual command button is now `Button/Command`, a blank 18 px square the same height as the status chip, on the status row. It's a subtle raised key that sinks when pressed and fades when disabled.
+  - **New `useButton` parameter** on valve and running-equipment templates (default `true`):
+    - `true`: the button shows in Manual.
+    - `false`: no button. In Manual you click the symbol itself, with the same rules (opening or starting blocked by P or I; closing or stopping always allowed). The cursor becomes a hand only when a click would act, and a yellow **M** segment (`Mode/ManualSplit`, the same height and font as the status chip) joins the left of the status.
+  - **Control valves:** they keep `tagPath` only.
+  - **New EFC_Styles classes:** `Button/Command` and `Mode/ManualJoined`.
+- **v4.3:**
+  - **Valve P and I:** they sit beside the actuator, 3 px from each side, centered on the actuator height. Positions are computed per valve symbol.
+  - **Control valve position bar:** moved to the left of the valve, just outside the P badge. It's taller (37 px), and the command pointer stays visible at 0 % and 100 %.
+- **v4.2:** every valve status (including the control valve's `NN %`) is now a bordered state chip, the same as running equipment: `State/Stopped` closed or 0 %, `State/Running` open, `State/Transition` opening or closing, `State/Fault` fault. Each chip is sized to its text and centered under the symbol.
+- **v4.1 (notes 25–31):**
+  - **Mode letters:** M / D / L removed.
+  - **Fault:** keeps the dark-gray fill and gets a **red 3 px border**, which overrides the alarm color.
+  - **Travelling / starting:** solid light-gray fill `#C4C4C4` (the dashed outline was tried and removed). The transition gray was darkened from `#D9D9D9` so it no longer disappears against the screen background.
+  - **Control valves:** a vertical position bar right of the actuator. The fill is the actual `Pos` and the blue pointer is the commanded `Out`; hover for the numbers. The I badge moved slightly left to make room.
+  - **Diaphragm compressor:** arc removed; the lines are wider apart and symmetric.
+  - **New `Templates/Rotating/Pump_Vacuum`:** the compressor body with a small inner circle.
+  - **Static SVG rename:** the old static `Pump_Vacuum.svg` is now `Pump_Vacuum_LiquidRing.svg`.
+- **v4 (templates per symbol):** the separate symbol views (`PID/Rotating/...`, `PID/Valves/...`) and the generic AutoValve / ControlValve / Motor templates are gone. Re-point existing instances to `Templates/<Category>/<Symbol>` and delete their `symbol`, `label`, `hasFeedback`, `alarm` and `popupView` params.
+- **Removed from the project:** the v2 static views (Fittings, Lines, Instruments, Vessels and so on) and the Equipment / Valve / Instrument / Tank wrapper templates. Their artwork lives on as SVGs in `symbols/`. Any screen embedding those v2 views must switch to a Drawing made from the SVG, or keep the v2 project.
+- **AutoValve size:** now 120×100 (was 110×84), because the template is wider and taller for the badges, centered status and manual chip. Resize existing instances.
+- **Not yet tested on a gateway.** Check `Templates/_Demo` first:
+  - percent-mode positions
+  - the `position.y` binding on the I badge
+  - the flex status group
