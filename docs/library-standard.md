@@ -1,4 +1,4 @@
-# Process Device Library – Design Standard (DRAFT v0.3)
+# Process Device Library – Design Standard (DRAFT v0.4)
 
 **Status:** Draft for review. Nothing in this repo has been built yet. This spec defines the shape of every object
 first, so we can agree on it once before writing the DFBs, DDTs, UDTs and faceplates.
@@ -11,7 +11,7 @@ first, so we can agree on it once before writing the DFBs, DDTs, UDTs and facepl
 | PLC ↔ HMI | OPC UA, symbolic, **one BMENUA0100 per system**. No located `%MW` blocks |
 | Field devices | Valves on **SMC SY3000 manifolds with an SMC EX260 SI unit**: **EtherNet/IP** first, **Modbus TCP** as the fallback. Limit switches are optional per valve (most valves have none). VFDs are **Allen-Bradley PowerFlex 525** on EtherNet/IP |
 | System size | Small system 1–10 devices, large 5–20 (one M580 + BMENUA0100 per system) |
-| HMI style | **ISA-101 grey scale** |
+| HMI style | **ISA-101 grey scale**, using the existing **`efc-ignition-library`** (EFC_Styles, PID_Symbols, PID_Loops, EFC_ProcessValues, EFC_IOFaceplates; v6.3) |
 
 Open questions are in [§14](#14-open-questions-for-review).
 
@@ -22,6 +22,7 @@ Open questions are in [§14](#14-open-questions-for-review).
 | 0.1 | First draft |
 | 0.2 | Prefix `PL_` confirmed. **Status and alarms are now individual BOOLs** (packed words removed). One BMENUA0100 per system. ISA-101 grey scale chosen. Added **valve bank object `PL_VBank`** for SMC SI units (EtherNet/IP or Modbus TCP). Double-solenoid / 3-position valve behaviour added. All Ethernet devices are now handled transport-independently |
 | 0.3 | SMC **EX260** confirmed. **Limit switches are optional** (`Cfg.HasZSO/HasZSC`, default none) and the no-switch behaviour is defined. VFD built around the **PowerFlex 525** (`PL_PF525_Adp`), with its comms constraint noted (no native Modbus TCP). Sizing simplified for 1–20 devices per system. Unanswered questions now have stated defaults |
+| 0.4 | Aligned with **`efc-ignition-library`**. The P&ID icons are the existing **PID_Symbols templates**, driven through a **template contract** (§8.4): alias members matching `DDT_Valve`, `PID_Motor`, `PID_ControlValve` and `PID_Loop`. Colours and classes are **EFC_Styles** (§9.4 replaced). Faceplates are a new `EFC_DeviceFaceplates` project opening in the dynamic window. Interlock text moves to the plant **`InterlockList`** structure. The mode set is proposed to align with the plant's Auto / Manual / Off / Lockout (Q3) |
 
 ---
 
@@ -228,6 +229,10 @@ Every `PL_<Type>_Alm` starts with `IOFlt` and `IntlkTrip`, so the base UDT can d
 | 5 | **Cascade** | Remote SP | `PL_Pid` only |
 | 6 | **Local** | Field (HOA in Hand, local station) | Entered automatically when the `Local` input is TRUE. The PLC tracks the device and does not drive it. On exit, goes to `Cfg.LocalExitMode` (default **Manual**) |
 
+- **Plant alignment (proposed, Q3):** the plant `DDT_Valve` uses **Auto / Manual / Off / LockedOut**, and the
+  PID_Symbols templates and mockups use those words. Proposal: rename *Out of Service* → **Off**. Then either replace
+  *Maintenance* with **Lockout** (outputs at fail state, no commands at all, Supervisor only to enter and leave) or
+  keep both. The enum values stay as above, so only text changes.
 - Auto ↔ Manual: Operator, unless the `ModeLock` input is TRUE.
 - Manual → Maintenance / Out of Service and back: Supervisor.
 - **Bumpless transfer.** Going Auto→Manual, the device holds its state or output. Going Manual→Auto, it follows the
@@ -609,8 +614,9 @@ XV_1001_Ilk(In1 := NOT LT_2001.HH,     (* 0: Tank 2001 high-high   *)
                                         (* In4..In16 default TRUE   *)
 ```
 
-The matching text rows in Ignition (`Text/IntlkDesc`) are 0: "LT-2001 Tank 2001 high-high", 1: "Area ESD active",
-2: "P-2001 not running".
+The matching `InterlockList` entries (§8.3) are set in the PLC next to this call, e.g. `InterlockName[0] := 'LSHH-2001'`,
+`Description[0] := 'Tank 2001 high-high'`, `Used[0] := TRUE`. They're done as initial values, or in a first-scan
+section.
 
 ---
 
@@ -624,10 +630,12 @@ PL_Base                       (parent, all commandable device UDTs inherit)
 ├─ Base/        OPC tags → {OpcNsPrefix}{PlcVar}.Base.*
 │   Cmd, CmdRsp, Mode, State, PCmdSts, IntlkFO, BypRemain_s
 │   IntlkOK, PermOK, Byp           (Boolean[] array tags)
+│   InterlockList, PermissiveList  (OPC document tags, §8.3)
 │   Sts/  Ready, Active, Inactive, Transit, Intlkd, PermNOK, Tripped, Sim, Byp, Local, ModeLocked, PCmdOn, CmdRej, AnyAlm
 ├─ Alm/         IOFlt, IntlkTrip   (OPC BOOL tags, each with one alarm)
 ├─ Derived/     ModeText, StateText (expression + dataset lookup)
-└─ Text/        IntlkDesc, PermDesc (Dataset[16]: Idx, Desc), StateMap
+├─ Text/        StateMap
+└─ (root)       template-contract aliases, §8.4: CMD/ZSO/ZSC/… or Cmd/Run/PB/… depending on type
 
 PL_DVlv  (parent = PL_Base)
 ├─ DevSts/  ZSO, ZSC, CoilA, CoilB, PosConfirmed, …
@@ -669,87 +677,178 @@ Each `Alm/*` member is an OPC BOOL tag with **one alarm, mode "Equal", setpoint 
 
 ### 8.3 Interlock and permissive text
 
-`Text/IntlkDesc` is a 16-row dataset, editable on the Eng tab or loaded from the CSV. The faceplate builds one table
-from `IntlkDesc` + `IntlkOK[]` + `IntlkFO` + `Byp[]`, with columns *index · description · OK / NOT OK · first-out ·
-bypassed*.
+**Proposed change (v0.4): adopt the plant `InterlockList` structure.** `DDT_Valve` already keeps interlock text in
+the PLC as an `InterlockList` structure (`Status`, `InterlockName[]`, `Description[]`, `Used[]`), and the PID_Symbols
+valve templates already parse it for the **I** badge tooltip. `PL_Base` gets the same structure, sized to 16 entries
+to match the `Intlk` WORD, plus the same for permissives (`PermissiveList`):
+
+| Member | Type | Notes |
+|---|---|---|
+| `InterlockList.Status` | *as in DDT_Valve* | Exact type copied from the plant DDT (Q17) |
+| `InterlockList.InterlockName` | ARRAY[0..15] OF STRING[16] | e.g. `LSHH-2001`. Set in the PLC (initial values) |
+| `InterlockList.Description` | ARRAY[0..15] OF STRING[32] | e.g. `Tank 2001 high-high` |
+| `InterlockList.Used` | ARRAY[0..15] OF BOOL | TRUE for each configured bit |
+
+- The text lives next to the logic that defines it, so it can't drift from the PLC code.
+- 20 devices × 32 strings is a trivial amount of memory.
+- The Ignition-side `Text/IntlkDesc` dataset from v0.3 is dropped.
+
+The faceplate's Interlocks tab joins `InterlockList` with `IntlkOK[]`, `IntlkFO` and `Byp[]`.
+
+### 8.4 Template contract: existing PID_Symbols templates work on PL_ instances unchanged
+
+The PID_Symbols templates in `efc-ignition-library` (v6.3) bind to member names from the plant and demo UDTs. Each
+PL_ UDT carries those names as **top-level alias members**, so a template can point its `tagPath` at a PL_ instance
+with no template change. The PLC design (command register, BOOL status, modes) is untouched.
+
+- **Read aliases** are expression tags.
+- **Write aliases** (`HMI_CMD`, `PB`) are memory tags with a **value-changed tag event script**. On a rising edge
+  (or any write, for `HMI_CMD`) the script writes the equivalent code to `Base/Cmd`.
+  - It never writes 0 back, so a fast press/release can't overwrite a command the PLC hasn't read yet.
+  - It audits the write like `pl.cmd.send()`.
+
+**Valve templates** (`Valve_OnOff_Pneumatic`, `Valve_Solenoid`, `Valve_MOV`) use the **`DDT_Valve` contract** on
+`PL_DVlv`:
+
+| Template member | Alias source in PL_DVlv | Notes |
+|---|---|---|
+| `CMD` | `DevSts/CmdOpen` | |
+| `ZSO` / `ZSC` | `DevSts/ZSO` / `DevSts/ZSC` | Both made → template shows FAULT. That matches `Alm.LimitConflict` |
+| `Feedback_Enabled` | `Cfg/HasZSO AND Cfg/HasZSC` | One switch only → treated as no feedback (the symbol follows CMD). The faceplate still shows the single switch |
+| `Permissive` (1 = missing) | `Base/Sts/PermNOK` | |
+| `Interlock` | `Base/Sts/Intlkd` | |
+| `InterlockList` | `Base/InterlockList` (OPC document) | Same structure, §8.3 |
+| `Manual` | `Base/Mode = 3 OR Base/Mode = 2` | The command button shows in Manual |
+| `Off` / `LockedOut` | `Base/Mode = 1` / see Q3 | |
+| `Name` / `Description` | UDT parameters `Name` / `Desc` | |
+| `HMI_CMD` (write) | tag event → `Base/Cmd` = 1 (TRUE) / 2 (FALSE) | |
+| `REQ` | `Base/PCmdSts = 1` | Not used by the template; kept for parity |
+| `Cycle_Count` | `Val/Cycles` | Not used by the template |
+
+**Running-equipment templates** (`Pump_*`, `Compressor_*`, `Blower`, `Agitator`, `Motor`, `Heater_Electric`,
+`HX_AirCooled`) use the **`PID_Motor` contract** on `PL_Mtr` and `PL_Vfd`:
+
+| Template member | Alias source | Notes |
+|---|---|---|
+| `Cmd` | `DevSts/RunOut` (Mtr) / `RunFwd OR RunRev` (Vfd) | |
+| `Run` | `DevSts/RunFbk` (Mtr) / `DevSts/DrvRunning` (Vfd) | |
+| `PB` (write, momentary) | tag event: rising edge → `Base/Cmd` = 2 if running, else 1 | The release (0) is ignored |
+| `PermOK` | `NOT Base/Sts/PermNOK` | |
+| `Intlk` | `Base/Sts/Intlkd` | |
+| `Fault` | `Base/Sts/Tripped` | No alarm on the alias. The real alarms are on `Alm/*` |
+| `Mode` | `if(Base/Mode = 3 OR Base/Mode = 2, 1, 0)` | The template only tests `Mode = 1` (Manual). Full PID_Motor enum: Q18 |
+| `Feedback_Enabled` | `Cfg/FbkPresent` (Mtr) / TRUE (Vfd) | |
+| `Name` / `Description` | parameters | |
+
+**`Valve_Control`** uses the **`PID_ControlValve` contract** on `PL_AVlv`:
+
+| Template member | Alias source |
+|---|---|
+| `Out` / `Pos` | `Val/CV` / `Val/PosFbk` |
+| `Feedback_Enabled` | `Cfg/FbkPresent` |
+| `PermOK`, `Intlk`, `Fault`, `Mode`, `Name`, `Description` | As for PID_Motor |
+
+**PID loop cards** (`PID/Templates/Loop_B1…B4`, `PID/Popups/LoopConfig`) use the **`PID_Loop` contract** on `PL_Pid`:
+
+| Template member | Alias source | Write behaviour |
+|---|---|---|
+| `PV`, `SP`, `OUT` | `Val/PV`, `Val/SP`, `Val/Out` | `SP` writes go to `Val/OSP`. `OUT` writes go to `Val/OOut` (accepted by the PLC in Manual only) |
+| `Mode` (0 MAN / 1 AUTO / 2 CAS) | `case(Base/Mode, 3, 0, 4, 1, 5, 2, 0)` | A write sends `Base/Cmd` 11 / 10 / 14 |
+| `Kp`, `Ti`, `Td` | `Cfg/Kp`, `Cfg/Ti_s`, `Cfg/Td_s` | Direct (bidirectional) |
+| `Action` (0 Rev / 1 Dir) | `NOT Cfg/Reverse` | Inverted on write |
+| `SP_Lo`/`SP_Hi`, `OUT_Lo`/`OUT_Hi` | `Cfg/SPMin`/`SPMax`, `Cfg/OutMin`/`OutMax` | Direct |
+| `AlmDev` | `Cfg/DevLim` | Direct |
+| `AlmHi` / `AlmLo` | The loop's PV transmitter (`PL_Ain` `HLim`/`LLim`) via the `PVTag` UDT parameter | See Q19: PID_Loop alarms PV in Ignition, while this library alarms in the PLC |
+
+*Verify in Phase 1:* the templates' alarm outline uses `isAlarmActiveFiltered(tagPath + "/*", …)`. PL_ alarms sit one
+level down (`Alm/*`), so confirm the wildcard spans folders. If it doesn't, the template generator adds an `Alm/*`
+lookup. This is also covered by the library's planned move to `queryStatus`.
 
 ---
 
 ## 9. Perspective faceplates
 
-### 9.1 View organization
+### 9.1 What comes from `efc-ignition-library`, and what's new
 
-```
-Library/
-  Common/  StatusHeader, ModeBar, IntlkTable, AlarmPanel, CmdResponseToast, NumericEntry, QualityOverlay
-  DVlv/    Icon, Faceplate
-  VBank/   Icon (bank health), Faceplate (station map: click a station → valve faceplate)
-  Mtr/ Vfd/ AVlv/ Pid/ Ain/ Din/   Icon, Faceplate
-```
+| Need | Use | Status |
+|---|---|---|
+| P&ID device symbols | **PID_Symbols templates** (16 active devices, `tagPath` + `useButton`) via the contract in §8.4. **No new icon views** | Exists (v5.1) |
+| Static P&ID symbols | `symbols/` SVGs (198) | Exists |
+| Styles | **EFC_Styles** (166 classes, vh-scaled 1080p → 4K). Faceplates use classes only, never inline styles. Missing needs become new classes in `generator/build_styles.py` | Exists |
+| Process values (AIN) | **EFC_ProcessValues** `PV_StatusStrip` / `PV_RangeBar` on `PL_Ain` | Exists. Needs a PV contract mapping in Phase 1 |
+| PID loops | **PID_Loops** cards B1–B4 + `LoopConfig` popup on `PL_Pid` (§8.4) | Exists. `LoopConfig` becomes the `PL_Pid` faceplate, or is replaced by one in the common layout (Q20) |
+| I/O cards | **EFC_IOFaceplates** (x80 cards, IODDT-based, rack overview) | Exists. It's the natural source for X80 channel health (`IOFlt`) display |
+| Device faceplates (DVlv, VBank, Mtr, Vfd, AVlv, Din) | **New project `EFC_DeviceFaceplates`** (parent EFC_Styles), built by a generator in `efc-ignition-library`, the same way as PID_Symbols | New |
 
-- Every view takes a single parameter, **`tagPath`**, and binds indirectly.
-- **One popup function** for all types: `pl.faceplate.open(tagPath)` reads the instance `typeId` and opens
-  `Library/<Type>/Faceplate` with popup id = `tagPath`.
+- **Where faceplates open:** in the **right-hand dynamic window** of the EFC screen standard (800 px at 4K = 400 px
+  at 1080p, vh-scaled), not a floating popup.
+- **How they open:** `pl.faceplate.open(tagPath)` reads the instance's `typeId` and loads
+  `Faceplates/<Type>` into that dock. The PID_Symbols templates get an `onClick` that calls it when
+  `useButton = true`; that is a generator change in `build_pid.py` (design notes 22 and 37 already reserve the click
+  for faceplates).
 
-### 9.2 Faceplate layout (discrete valve)
+### 9.2 Faceplate layout (EFC_Styles classes)
 
-```
-┌───────────────────────────────────────────────┐
-│ XV-1001   Tank 2001 inlet valve        [x]    │
-│ OPEN      MANUAL               ◆2 1 alarm     │  ← StatusHeader (◆2 = priority-2 shape + colour)
-├───────────────────────────────────────────────┤
-│ [Operate] [Interlocks] [Alarms] [Maint] [Eng] │
-├───────────────────────────────────────────────┤
-│ Mode:  [AUTO] [MANUAL]        Program: CLOSE   │
-│                                               │
-│        [  OPEN  ]      [ CLOSE ]      [RESET] │
-│                                               │
-│  ZSO ■   ZSC □    Coil A ■  Coil B □          │
-│  Bank VB-101 / stn 3   Healthy                │
-│  Last stroke: open 3.2 s / close 2.9 s        │
-└───────────────────────────────────────────────┘
-```
+The layout is shown in the mockup canvas: XV-1001 and P-2001 at 1080p.
+
+| Region | Classes |
+|---|---|
+| Frame | `Container/Faceplate` |
+| Header: tag, description, close button | `Container/Header`, `Text/Header`, `Text/Label`, `Button/Icon` |
+| State strip: the device's own symbol (same Drawing as its template), state chip, `M` split chip in Manual, active alarm chip | `State/Running` · `Stopped` · `Transition` · `Fault`, `Mode/ManualSplit` + `Mode/ManualJoined`, `Alarm/<Pri>/Fill` · `Unacked` |
+| Tabs | `Button/Tab` / `Button/TabActive` on `Container/Panel` |
+| Group boxes | `Container/GroupBox`, `Text/Subheader` |
+| Mode buttons (Auto / Manual / Off / Lockout) | `Button/Toggle/On` (selected, white) / `Button/Toggle/Off` |
+| Commands | `Button/Start` (open/start), `Button/Stop` (close/stop), `Button/Default` (reset), `Util/Disabled` |
+| Values | `Text/ValueHero` / `Text/Value` + `Text/Units`, `Container/ValueBox`, `Bar/Track` · `Fill` · `Marker` |
+| Operator entries (speed, CV, SP) | `Input/Setpoint` (blue `#1F4E99`), `Input/ReadOnly` when not editable |
+| P / I | `Indicator/PermissiveBadge` / `Indicator/InterlockBadge`. Lists use `Indicator/Permissive` / `Interlock` text forms |
+| Sim / bad quality / stale | `Mode/Simulated` + `Value/Simulated` (teal), `Value/BadQuality` (magenta dashed), `Value/Stale` |
 
 | Tab | Content | Role |
 |---|---|---|
-| Operate | Mode, commands, key values, setpoints | Operator |
-| Interlocks | Interlock + permissive tables, first-out, bypass | View: all. Bypass: Supervisor |
-| Alarms | This device's alarms, shelve | Operator (shelve: Supervisor) |
+| Operate | Mode, commands, key values, setpoints, program request, `InterlockList` summary | Operator |
+| Interlocks | `InterlockList` / `PermissiveList` tables with OK / first-out / bypassed, bypass buttons | View: all. Bypass: Supervisor |
+| Alarms | This instance's alarms (`Alarm/*` classes), shelve | Operator (shelve: Supervisor) |
 | Trend | Power Chart (AIN, AVlv, Vfd, Pid) | All |
-| Maint | Counters, run hours, stroke times, Maintenance/Out of Service, counter reset | Supervisor |
-| Eng | `Cfg/*`, SIM, interlock text, config backup/restore | Engineer |
+| Maint / Drive | Counters, run hours, stroke times, PF525 data and fault text, counter reset | Supervisor |
+| Eng | `Cfg/*`, SIM, config backup/restore | Engineer (`view.custom.engineerRole`, as in `LoopConfig`) |
 
 ### 9.3 Security
 
 | Action | Operator | Supervisor | Engineer |
 |---|:-:|:-:|:-:|
 | Open/close/start/stop, setpoints, Auto/Manual, Reset | ✔ | ✔ | ✔ |
-| Maintenance, Out of Service, bypass, shelve, counter reset | | ✔ | ✔ |
-| Cfg edits, SIM, interlock text | | | ✔ |
+| Off / Lockout (see Q3), bypass, shelve, counter reset | | ✔ | ✔ |
+| Cfg edits, SIM | | | ✔ |
 
 - Roles are checked in the `enabled` binding and again in `pl.cmd.send()`, which writes, waits for `CmdRsp` and
   audits.
-- Starting equipment, bypass and Out of Service need a confirmation dialog.
+- Starting equipment, bypass and Off/Lockout need a confirmation dialog.
 
-### 9.4 ISA-101 grey-scale style (decided)
+### 9.4 Colours: EFC_Styles (decided by the existing library)
 
-All colours are defined once as theme variables and style classes under `PL/…`. No view hard-codes a colour.
+This replaces the palette proposed in v0.2–v0.3. The source of truth is `efc-ignition-library/docs/style-library.md`
+and its ISA-101 audit.
 
-| Element | Treatment |
+| Element | EFC_Styles |
 |---|---|
-| Background | Light neutral grey |
-| Equipment outline | Dark grey |
-| Normal state, active (open / running) | **Solid dark-grey fill** |
-| Normal state, inactive (closed / stopped) | **Hollow / background fill**, dark outline |
-| Transitioning | Half fill or dashed outline. Blink is never used for normal transitions |
-| Process values | Dark text on grey. No colour when normal |
-| Alarm, by priority | The **only saturated colours**: Critical/High red, Medium amber, Low yellow, Diagnostic blue/violet. Always paired with a **priority shape + number** next to the object, so colour is never the only cue. Unacknowledged = blinking indicator only, never the whole object |
-| Interlocked / permissive not OK | Small neutral "I" / "P" glyph next to the icon. The faceplate gives details |
-| Mode, Local, SIM, Bypass, Maintenance | Neutral text badges (`A`/`M`/`L`/`SIM`/`BYP`/`MNT`). `BYP` and `SIM` are outlined to stand out without alarm colours |
-| Bad tag quality / comm loss | Dedicated *quality overlay* (light cross-hatch + "?"), distinct from alarm colours |
+| Screen | `#D9D9D9` |
+| Running / open | **White** `#FFFFFF` |
+| Stopped / closed | `#9E9E9E` |
+| Transition | `#C4C4C4` (state chip dashed) |
+| Fault | `#3A3A3A` fill + 3 px red `#D50000` outline + FAULT text |
+| Alarm priorities | Critical `#D50000`, High `#FF7A00`, Medium `#FFD200`, Low `#00A3E0`, Diagnostic `#6E6E6E`. Shown as the symbol outline in the priority colour. Only `Alarm/*/Unacked` blinks |
+| Permissive / interlock badges | P orange `#F08000` on the left, I red `#C00000` on the right, never on the process line |
+| Manual | Yellow `M` on a dark split chip, or the command button (shown only in Manual) |
+| Simulated | Teal (`Mode/Simulated`, `Value/Simulated`) |
+| Bad quality | Magenta `#B000B0` dashed outline |
+| Editable / setpoint | Blue `#1F4E99` |
+| Fonts | Noto Sans / Noto Sans Mono, sizes in vh (`Text/Size/*`) |
 
-The exact hex values will be chosen in Phase 1 against the plant's control-room monitors and checked for
-colour-blind contrast.
+**No-limit-switch valves:** following template behaviour, the symbol follows `CMD` with no extra marker. The faceplate
+states "Position follows CMD (no ZSO/ZSC)". The "≈" marker proposed in v0.3 is dropped unless you want it added to
+the templates (Q21).
 
 ---
 
@@ -782,13 +881,19 @@ plc/
   dfb/                    *.xdb exports (source of truth)
   src/                    *.st readable copies for review
   test/                   test project + procedures
-ignition/
-  udts/                   *.json UDT definitions
-  perspective/Library/    view resources
-  scripts/pl/             faceplate, cmd, cfg backup, csv import
-  styles/                 PL/* style classes + theme variables
-tools/                    csv_to_udt_instances, rename_prefix
+tools/                    rename_prefix
 ```
+
+**Ignition side lives in `efc-ignition-library`, not here.** That repo already has the generator-based workflow, CI 8.1
+import check, preview-first rule and release zips. The PL_ additions there are:
+
+- **UDTs:** `tags/PL_*_UDT.json`, including the contract aliases.
+- **Faceplates:** `generator/build_faceplates.py` → `projects/EFC_DeviceFaceplates/`.
+- **Scripts:** the `pl.*` project scripts (faceplate open, cmd send, cfg backup, CSV import).
+- **New style classes:** added to `generator/build_styles.py`.
+- **Templates:** an `onClick` → `pl.faceplate.open` in `build_pid.py`.
+
+This repo keeps the PLC side and this standard; the two are versioned together through `LibVer`.
 
 ### 11.3 Testing
 
@@ -856,3 +961,15 @@ tools/                    csv_to_udt_instances, rename_prefix
 | Q12 | Identity provider and role names | Ignition internal user source. Roles `Operator`, `Supervisor`, `Engineer` |
 | Q13 | Starts/hr and restart delay in PLC? | In the PLC, disabled by default (`MaxStartsHr = 0`, `RestartDly_s = 0`) |
 | Q16 | Bank air pressure / valve power monitoring | Optional `AirOK`/`PwrOK` pins, default TRUE (not monitored) |
+
+**New in v0.4 (from `efc-ignition-library`):**
+
+| # | Question | Default if unanswered |
+|---|---|---|
+| Q3b | Mode names: adopt the plant's Off / LockedOut? What does LockedOut mean in the plant (LOTO, no commands)? | Off = Out of Service. Lockout replaces Maintenance |
+| Q11b | The plant already has a PLC **`DDT_Valve`** (and `DDT_Station`). Is there an existing valve DFB? Should `PL_DVlv` replace it, or live alongside it? | Alongside. New projects use `PL_DVlv`, existing `DDT_Valve` code stays. Both drive the same templates |
+| Q17 | Please export `DDT_Valve` and its `InterlockList` DDT (`.xdd`) into `plc/reference/`, so the structure can be copied exactly | Infer from the template script (`Status`, `InterlockName[]`, `Description[]`, `Used[]`) |
+| Q18 | Full `PID_Motor.Mode` enumeration (templates only test 1 = Manual) | 0 Auto, 1 Manual, 2 Off, 3 Lockout |
+| Q19 | PID_Loop alarms PV in Ignition (`AlmHi`/`AlmLo`). Keep that for loops, or move to `PL_Ain` (PLC) as this standard does? | PLC (`PL_Ain`). The loop card reads the limits through `PVTag` |
+| Q20 | Keep `PID/Popups/LoopConfig` as the loop faceplate, or rebuild it in the common faceplate layout (it uses inline styles today)? | Rebuild in `EFC_DeviceFaceplates` with EFC_Styles. LoopConfig stays for existing screens |
+| Q21 | Add a "position not proven" marker to the valve templates for no-switch valves? | No. Follow the existing template behaviour |
